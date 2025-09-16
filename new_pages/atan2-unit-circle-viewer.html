@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atan2 Surface with Unit Circle - Interactive Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0b0f14;
+            color: #e5ecf3;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+        
+        #3d-view {
+            flex: 1;
+            position: relative;
+        }
+        
+        #2d-view {
+            width: 400px;
+            background: rgba(17, 33, 43, 0.95);
+            border-left: 1px solid rgba(59, 130, 246, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #2d-canvas {
+            flex: 1;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(17, 33, 43, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            z-index: 100;
+            min-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #hover-info {
+            position: absolute;
+            top: 20px;
+            right: 420px;
+            background: rgba(17, 33, 43, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #06b6d4;
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+            outline: none;
+            appearance: none;
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(6, 182, 212, 0.3);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            display: inline-block;
+            float: right;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        h3 {
+            margin: 0 0 15px 0;
+            color: #e5ecf3;
+            font-size: 16px;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .info-item strong {
+            color: #06b6d4;
+            display: inline-block;
+            width: 100px;
+        }
+        
+        .info-value {
+            font-family: 'Fira Code', monospace;
+            color: #fbbf24;
+        }
+        
+        #graph-title {
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #06b6d4;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="3d-view">
+            <div id="controls">
+                <h3>🎛️ View Controls</h3>
+                
+                <div class="control-group">
+                    <label for="azimuth">
+                        Azimuth (°)
+                        <span class="value-display" id="azimuth-value">45</span>
+                    </label>
+                    <input type="range" id="azimuth" min="0" max="360" value="45" step="1">
+                </div>
+                
+                <div class="control-group">
+                    <label for="elevation">
+                        Elevation (°)
+                        <span class="value-display" id="elevation-value">30</span>
+                    </label>
+                    <input type="range" id="elevation" min="-89" max="89" value="30" step="1">
+                </div>
+                
+                <div class="control-group">
+                    <label for="zoom">
+                        Zoom
+                        <span class="value-display" id="zoom-value">8</span>
+                    </label>
+                    <input type="range" id="zoom" min="3" max="15" value="8" step="0.5">
+                </div>
+                
+                <h3 style="margin-top: 20px;">🎯 Unit Circle</h3>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-circle" checked>
+                    <label for="show-circle">Show Unit Circle</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-trace" checked>
+                    <label for="show-trace">Show Height Trace</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="animate-circle" checked>
+                    <label for="animate-circle">Animate Point</label>
+                </div>
+                
+                <h3 style="margin-top: 20px;">🔧 Branch Cut</h3>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="open-seam" checked>
+                    <label for="open-seam" title="Remove triangles that cross the branch cut">Open seam (no bridging faces)</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="duplicate-vertices" checked>
+                    <label for="duplicate-vertices" title="Duplicate vertices on the seam for clean separation">Duplicate seam vertices</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="two-sheet">
+                    <label for="two-sheet" title="Show both sheets separated by 2π">Two-sheet (±2π) mode</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="mask-seam">
+                    <label for="mask-seam" title="Visual-only masking using shader">Mask seam (visual only)</label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="angle-position">
+                        Angle (°)
+                        <span class="value-display" id="angle-value">0</span>
+                    </label>
+                    <input type="range" id="angle-position" min="0" max="360" value="0" step="1">
+                </div>
+            </div>
+            
+            <div id="hover-info">
+                <h3>📍 Current Point</h3>
+                <div class="info-item">
+                    <strong>Input θ:</strong>
+                    <span class="info-value" id="input-theta">0°</span>
+                </div>
+                <div class="info-item">
+                    <strong>Position:</strong>
+                    <span class="info-value" id="position-xy">(1.00, 0.00)</span>
+                </div>
+                <div class="info-item">
+                    <strong>atan2(y,x):</strong>
+                    <span class="info-value" id="output-value">0°</span>
+                </div>
+                <div class="info-item" style="margin-top: 15px; color: #94a3b8; font-size: 12px;">
+                    The height above the circle shows the atan2 value at each angle.
+                </div>
+            </div>
+        </div>
+        
+        <div id="2d-view">
+            <div id="graph-title">
+                <h3>📊 Unwrapped: Input Angle → atan2 Output</h3>
+            </div>
+            <canvas id="2d-canvas"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global Three.js objects
+        let scene, camera, renderer;
+        let surface, wireframe;
+        let unitCircle, heightTrace, currentPoint, verticalLine;
+        let three = {};
+        
+        // Animation state
+        let animationAngle = 0;
+        let isAnimating = true;
+        
+        // Branch cut settings (start with open seam to show the gap)
+        const branchCutSettings = {
+            openSeam: true,
+            duplicateVertices: true,
+            twoSheet: false,
+            maskSeam: false
+        };
+        
+        // Camera parameters
+        const cameraParams = {
+            azimuth: 45,
+            elevation: 30,
+            zoom: 8
+        };
+        
+        // Surface parameters
+        const SURFACE_SIZE = 6;
+        const RESOLUTION = 64;
+        const ZSCALE = 0.35 * (180 / Math.PI); // Convert to degrees
+        
+        function init() {
+            initThreeJS();
+            initAtan2Surface();
+            initUnitCircle();
+            init2DGraph();
+            initControls();
+            updateCameraFromOrbit();
+            animate();
+        }
+        
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0b0f14);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, 
+                (window.innerWidth - 400) / window.innerHeight, 0.1, 1000);
+            camera.up.set(0, 0, 1);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth - 400, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('3d-view').appendChild(renderer.domElement);
+            
+            three.scene = scene;
+            three.camera = camera;
+            three.renderer = renderer;
+            three.render = () => renderer.render(scene, camera);
+            
+            window.addEventListener('resize', onWindowResize, false);
+        }
+        
+        function createAtan2Geometry() {
+            // Create base grid
+            const gridSize = RESOLUTION;
+            const geometry = new THREE.PlaneGeometry(SURFACE_SIZE, SURFACE_SIZE, gridSize - 1, gridSize - 1);
+            const positions = geometry.attributes.position.array;
+            const originalIndices = geometry.index.array;
+            
+            // Compute angles for each vertex
+            const vertexCount = positions.length / 3;
+            const angles = new Float32Array(vertexCount);
+            
+            for (let i = 0; i < vertexCount; i++) {
+                const x = positions[i * 3];
+                const y = positions[i * 3 + 1];
+                angles[i] = Math.atan2(y, x); // Radians in [-π, π]
+                
+                // Set z coordinate
+                positions[i * 3 + 2] = angles[i] * 0.01 * (180 / Math.PI); // Scale for visibility
+            }
+            
+            let finalGeometry;
+            
+            if (branchCutSettings.openSeam) {
+                // Filter triangles that cross the branch cut
+                const newIndices = [];
+                
+                for (let i = 0; i < originalIndices.length; i += 3) {
+                    const a = originalIndices[i];
+                    const b = originalIndices[i + 1];
+                    const c = originalIndices[i + 2];
+                    
+                    // Get vertex positions
+                    const xa = positions[a * 3];
+                    const ya = positions[a * 3 + 1];
+                    const xb = positions[b * 3];
+                    const yb = positions[b * 3 + 1];
+                    const xc = positions[c * 3];
+                    const yc = positions[c * 3 + 1];
+                    
+                    // Check if triangle crosses the negative x-axis (branch cut)
+                    // A triangle crosses if it has vertices on both sides of the cut
+                    // The cut is along negative x-axis, so check for x < 0 and different signs of y
+                    
+                    // Method 1: Check if triangle straddles the negative x-axis
+                    const crossesNegativeX = (xa < 0 || xb < 0 || xc < 0) && 
+                                            ((ya > 0 && yb < 0) || (ya > 0 && yc < 0) || 
+                                             (yb > 0 && ya < 0) || (yb > 0 && yc < 0) ||
+                                             (yc > 0 && ya < 0) || (yc > 0 && yb < 0));
+                    
+                    // Method 2: Also use angle-based detection
+                    const angleA = angles[a];
+                    const angleB = angles[b];
+                    const angleC = angles[c];
+                    
+                    // Check if angles span across the discontinuity
+                    const hasPositivePi = (angleA > 2.5 || angleB > 2.5 || angleC > 2.5);
+                    const hasNegativePi = (angleA < -2.5 || angleB < -2.5 || angleC < -2.5);
+                    const crossesByAngle = hasPositivePi && hasNegativePi;
+                    
+                    // Don't add triangle if it crosses the branch cut
+                    if (!crossesNegativeX && !crossesByAngle) {
+                        newIndices.push(a, b, c);
+                    }
+                }
+                
+                if (branchCutSettings.duplicateVertices && newIndices.length > 0) {
+                    // Identify seam vertices (vertices on the boundary of removed triangles)
+                    const seamVertices = new Set();
+                    const usedVertices = new Set();
+                    const removedTriangles = new Set();
+                    
+                    // Find removed triangles
+                    for (let i = 0; i < originalIndices.length; i += 3) {
+                        const tri = [originalIndices[i], originalIndices[i+1], originalIndices[i+2]];
+                        let found = false;
+                        for (let j = 0; j < newIndices.length; j += 3) {
+                            if (tri[0] === newIndices[j] && tri[1] === newIndices[j+1] && tri[2] === newIndices[j+2]) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            tri.forEach(v => seamVertices.add(v));
+                        }
+                    }
+                    
+                    // Track which vertices are used in kept triangles
+                    for (let i = 0; i < newIndices.length; i++) {
+                        usedVertices.add(newIndices[i]);
+                    }
+                    
+                    // Find actual seam vertices (used by both removed and kept triangles)
+                    const actualSeamVertices = new Set([...seamVertices].filter(v => usedVertices.has(v)));
+                    
+                    if (actualSeamVertices.size > 0) {
+                        // Create vertex map for duplication
+                        const vertexMap = new Map();
+                        let newVertexIndex = vertexCount;
+                        
+                        // Duplicate positions for seam vertices
+                        const newPositions = new Float32Array(positions.length + actualSeamVertices.size * 3);
+                        newPositions.set(positions);
+                        
+                        const newAngles = new Float32Array(angles.length + actualSeamVertices.size);
+                        newAngles.set(angles);
+                        
+                        for (const v of actualSeamVertices) {
+                            // Copy vertex position
+                            newPositions[newVertexIndex * 3] = positions[v * 3];
+                            newPositions[newVertexIndex * 3 + 1] = positions[v * 3 + 1];
+                            newPositions[newVertexIndex * 3 + 2] = positions[v * 3 + 2];
+                            
+                            newAngles[newVertexIndex] = angles[v];
+                            vertexMap.set(v, newVertexIndex);
+                            newVertexIndex++;
+                        }
+                        
+                        // Update indices to use duplicated vertices where appropriate
+                        const finalIndices = [];
+                        for (let i = 0; i < newIndices.length; i += 3) {
+                            const a = newIndices[i];
+                            const b = newIndices[i + 1];
+                            const c = newIndices[i + 2];
+                            
+                            // Check if this triangle is near the seam
+                            const angleA = angles[a];
+                            const angleB = angles[b];
+                            const angleC = angles[c];
+                            
+                            const avgAngle = (angleA + angleB + angleC) / 3;
+                            
+                            // Use duplicated vertices for triangles on the positive side of the seam
+                            if (avgAngle > Math.PI / 2 || avgAngle < -Math.PI / 2) {
+                                finalIndices.push(
+                                    vertexMap.has(a) ? vertexMap.get(a) : a,
+                                    vertexMap.has(b) ? vertexMap.get(b) : b,
+                                    vertexMap.has(c) ? vertexMap.get(c) : c
+                                );
+                            } else {
+                                finalIndices.push(a, b, c);
+                            }
+                        }
+                        
+                        finalGeometry = new THREE.BufferGeometry();
+                        finalGeometry.setAttribute('position', new THREE.BufferAttribute(newPositions, 3));
+                        finalGeometry.setAttribute('angle', new THREE.BufferAttribute(newAngles, 1));
+                        finalGeometry.setIndex(finalIndices);
+                    } else {
+                        finalGeometry = new THREE.BufferGeometry();
+                        finalGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                        finalGeometry.setAttribute('angle', new THREE.BufferAttribute(angles, 1));
+                        finalGeometry.setIndex(newIndices);
+                    }
+                } else {
+                    finalGeometry = new THREE.BufferGeometry();
+                    finalGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    finalGeometry.setAttribute('angle', new THREE.BufferAttribute(angles, 1));
+                    finalGeometry.setIndex(newIndices);
+                }
+            } else {
+                finalGeometry = geometry;
+                finalGeometry.setAttribute('angle', new THREE.BufferAttribute(angles, 1));
+            }
+            
+            if (branchCutSettings.twoSheet) {
+                // Create two-sheet visualization
+                const pos = finalGeometry.attributes.position.array;
+                const ang = finalGeometry.attributes.angle.array;
+                const idx = finalGeometry.index ? Array.from(finalGeometry.index.array) : [];
+                
+                const vertCount = pos.length / 3;
+                
+                // Create positions for both sheets
+                const twoSheetPositions = new Float32Array(pos.length * 2);
+                const twoSheetAngles = new Float32Array(ang.length * 2);
+                
+                // Lower sheet (original)
+                twoSheetPositions.set(pos, 0);
+                twoSheetAngles.set(ang, 0);
+                
+                // Upper sheet (shifted by 2π)
+                for (let i = 0; i < vertCount; i++) {
+                    const offset = vertCount * 3;
+                    twoSheetPositions[offset + i * 3] = pos[i * 3];
+                    twoSheetPositions[offset + i * 3 + 1] = pos[i * 3 + 1];
+                    // Add 2π to z coordinate
+                    twoSheetPositions[offset + i * 3 + 2] = pos[i * 3 + 2] + 2 * Math.PI * 0.01 * (180 / Math.PI);
+                    
+                    twoSheetAngles[vertCount + i] = ang[i];
+                }
+                
+                // Create indices for both sheets
+                const twoSheetIndices = [];
+                
+                // Lower sheet indices
+                twoSheetIndices.push(...idx);
+                
+                // Upper sheet indices (offset by vertex count)
+                for (let i = 0; i < idx.length; i++) {
+                    twoSheetIndices.push(idx[i] + vertCount);
+                }
+                
+                const twoSheetGeometry = new THREE.BufferGeometry();
+                twoSheetGeometry.setAttribute('position', new THREE.BufferAttribute(twoSheetPositions, 3));
+                twoSheetGeometry.setAttribute('angle', new THREE.BufferAttribute(twoSheetAngles, 1));
+                twoSheetGeometry.setIndex(twoSheetIndices);
+                twoSheetGeometry.computeVertexNormals();
+                
+                return twoSheetGeometry;
+            }
+            
+            finalGeometry.computeVertexNormals();
+            return finalGeometry;
+        }
+        
+        function initAtan2Surface() {
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Axes
+            const origin = new THREE.Vector3(0, 0, 0);
+            const mkArr = (dir, color) =>
+                new THREE.ArrowHelper(dir.clone().normalize(), origin, 2, color, 0.12, 0.08);
+            
+            scene.add(mkArr(new THREE.Vector3(1, 0, 0), 0xff5555));
+            scene.add(mkArr(new THREE.Vector3(0, 1, 0), 0x55ff55));
+            scene.add(mkArr(new THREE.Vector3(0, 0, 1), 0x5599ff));
+            
+            // Create atan2 surface with branch cut handling
+            const geometry = createAtan2Geometry();
+            
+            // Surface material (with optional masking)
+            const material = new THREE.MeshLambertMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            
+            if (branchCutSettings.maskSeam) {
+                // Add shader-based masking for visual-only seam
+                material.onBeforeCompile = (shader) => {
+                    shader.vertexShader = shader.vertexShader.replace(
+                        '#include <worldpos_vertex>',
+                        `
+                        #include <worldpos_vertex>
+                        varying vec3 vWorldPos;
+                        vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                        `
+                    );
+                    
+                    shader.fragmentShader = `
+                        varying vec3 vWorldPos;
+                        ${shader.fragmentShader}
+                    `.replace(
+                        '#include <dithering_fragment>',
+                        `
+                        #include <dithering_fragment>
+                        // Mask seam along negative x-axis
+                        if (vWorldPos.x < 0.0 && abs(vWorldPos.y) < 0.05) {
+                            discard;
+                        }
+                        `
+                    );
+                };
+            }
+            
+            surface = new THREE.Mesh(geometry, material);
+            scene.add(surface);
+            
+            // Wireframe
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x3b82f6,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2
+            });
+            
+            wireframe = new THREE.Mesh(geometry.clone(), wireframeMaterial);
+            scene.add(wireframe);
+        }
+        
+        function rebuildSurface() {
+            // Remove existing surface and wireframe
+            if (surface) {
+                scene.remove(surface);
+                surface.geometry.dispose();
+                surface.material.dispose();
+            }
+            if (wireframe) {
+                scene.remove(wireframe);
+                wireframe.geometry.dispose();
+                wireframe.material.dispose();
+            }
+            
+            // Recreate with new settings
+            const geometry = createAtan2Geometry();
+            
+            // Surface material
+            const material = new THREE.MeshLambertMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            
+            if (branchCutSettings.maskSeam) {
+                material.onBeforeCompile = (shader) => {
+                    shader.vertexShader = shader.vertexShader.replace(
+                        '#include <worldpos_vertex>',
+                        `
+                        #include <worldpos_vertex>
+                        varying vec3 vWorldPos;
+                        vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                        `
+                    );
+                    
+                    shader.fragmentShader = `
+                        varying vec3 vWorldPos;
+                        ${shader.fragmentShader}
+                    `.replace(
+                        '#include <dithering_fragment>',
+                        `
+                        #include <dithering_fragment>
+                        // Mask seam along negative x-axis
+                        if (vWorldPos.x < 0.0 && abs(vWorldPos.y) < 0.05) {
+                            discard;
+                        }
+                        `
+                    );
+                };
+            }
+            
+            surface = new THREE.Mesh(geometry, material);
+            scene.add(surface);
+            
+            // Wireframe
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x3b82f6,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2
+            });
+            
+            wireframe = new THREE.Mesh(geometry.clone(), wireframeMaterial);
+            scene.add(wireframe);
+        }
+        
+        function initUnitCircle() {
+            // Create glowing unit circle on the x-y plane
+            const circleGeometry = new THREE.BufferGeometry();
+            const points = [];
+            const colors = [];
+            
+            for (let i = 0; i <= 360; i++) {
+                const angle = (i / 180) * Math.PI;
+                points.push(Math.cos(angle), Math.sin(angle), 0);
+                
+                // Create gradient color based on angle
+                const hue = i / 360;
+                const color = new THREE.Color().setHSL(hue, 1.0, 0.6);
+                colors.push(color.r, color.g, color.b);
+            }
+            
+            circleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+            circleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const circleMaterial = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                linewidth: 3,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            unitCircle = new THREE.Line(circleGeometry, circleMaterial);
+            scene.add(unitCircle);
+            
+            // Create height trace (the 3D spiral showing atan2 values)
+            const traceGeometry = new THREE.BufferGeometry();
+            const tracePoints = [];
+            const traceColors = [];
+            
+            for (let i = 0; i <= 360; i++) {
+                const angle = (i / 180) * Math.PI;
+                const x = Math.cos(angle);
+                const y = Math.sin(angle);
+                const z = Math.atan2(y, x) * (180 / Math.PI) * 0.01;
+                
+                tracePoints.push(x, y, z);
+                
+                const hue = i / 360;
+                const color = new THREE.Color().setHSL(hue, 1.0, 0.7);
+                traceColors.push(color.r, color.g, color.b);
+            }
+            
+            traceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(tracePoints, 3));
+            traceGeometry.setAttribute('color', new THREE.Float32BufferAttribute(traceColors, 3));
+            
+            const traceMaterial = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                linewidth: 4,
+                transparent: true,
+                opacity: 1.0
+            });
+            
+            heightTrace = new THREE.Line(traceGeometry, traceMaterial);
+            scene.add(heightTrace);
+            
+            // Create current point indicator
+            const sphereGeometry = new THREE.SphereGeometry(0.08, 32, 32);
+            const sphereMaterial = new THREE.MeshBasicMaterial({
+                color: 0xfbbf24
+            });
+            
+            currentPoint = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            scene.add(currentPoint);
+            
+            // Create vertical line from circle to height
+            const lineGeometry = new THREE.BufferGeometry();
+            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 0,0,0], 3));
+            
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0xfbbf24,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            verticalLine = new THREE.Line(lineGeometry, lineMaterial);
+            scene.add(verticalLine);
+        }
+        
+        function init2DGraph() {
+            const canvas = document.getElementById('2d-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = 400;
+            canvas.height = window.innerHeight - 60; // Account for title
+            
+            window.draw2DGraph = function(highlightAngle = null) {
+                // Clear canvas
+                ctx.fillStyle = '#0b0f14';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+                ctx.lineWidth = 1;
+                
+                // Vertical lines
+                for (let x = 0; x <= 360; x += 45) {
+                    const px = (x / 360) * canvas.width;
+                    ctx.beginPath();
+                    ctx.moveTo(px, 0);
+                    ctx.lineTo(px, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Horizontal lines
+                for (let y = -180; y <= 180; y += 45) {
+                    const py = canvas.height / 2 - (y / 180) * (canvas.height / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(0, py);
+                    ctx.lineTo(canvas.width, py);
+                    ctx.stroke();
+                }
+                
+                // Draw axes
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 2;
+                
+                // X-axis (at y=0)
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+                
+                // Draw the atan2 function
+                ctx.strokeStyle = '#06b6d4';
+                ctx.lineWidth = 3;
+                
+                // Draw continuous segments, breaking at discontinuity
+                ctx.beginPath();
+                let lastY = null;
+                let lastValidY = null;
+                
+                for (let deg = 0; deg <= 360; deg += 1) {
+                    const rad = (deg / 180) * Math.PI;
+                    const x = Math.cos(rad);
+                    const y = Math.sin(rad);
+                    const atan2Val = Math.atan2(y, x) * (180 / Math.PI);
+                    
+                    const px = (deg / 360) * canvas.width;
+                    const py = canvas.height / 2 - (atan2Val / 180) * (canvas.height / 2);
+                    
+                    // Detect discontinuity (jump from ~180 to ~-180 or vice versa)
+                    if (lastValidY !== null && Math.abs(atan2Val - lastValidY) > 300) {
+                        // End current path and start new one
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(px, py);
+                    } else if (deg === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                    
+                    lastValidY = atan2Val;
+                }
+                ctx.stroke();
+                
+                // Draw highlight point if specified
+                if (highlightAngle !== null) {
+                    const rad = (highlightAngle / 180) * Math.PI;
+                    const x = Math.cos(rad);
+                    const y = Math.sin(rad);
+                    const atan2Val = Math.atan2(y, x) * (180 / Math.PI);
+                    
+                    const px = (highlightAngle / 360) * canvas.width;
+                    const py = canvas.height / 2 - (atan2Val / 180) * (canvas.height / 2);
+                    
+                    // Draw point
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw vertical line
+                    ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(px, 0);
+                    ctx.lineTo(px, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Add labels
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'center';
+                
+                // X-axis labels
+                for (let x = 0; x <= 360; x += 90) {
+                    const px = (x / 360) * canvas.width;
+                    ctx.fillText(x + '°', px, canvas.height - 5);
+                }
+                
+                // Y-axis labels
+                ctx.textAlign = 'right';
+                for (let y = -180; y <= 180; y += 90) {
+                    const py = canvas.height / 2 - (y / 180) * (canvas.height / 2);
+                    ctx.fillText(y + '°', 35, py + 5);
+                }
+            };
+            
+            // Initial draw
+            draw2DGraph();
+        }
+        
+        function updatePoint(angleDegrees) {
+            const angleRad = (angleDegrees / 180) * Math.PI;
+            const x = Math.cos(angleRad);
+            const y = Math.sin(angleRad);
+            const z = Math.atan2(y, x) * (180 / Math.PI) * 0.01;
+            
+            // Update point position
+            currentPoint.position.set(x, y, z);
+            
+            // Update vertical line
+            const positions = verticalLine.geometry.attributes.position;
+            positions.setXYZ(0, x, y, 0);
+            positions.setXYZ(1, x, y, z);
+            positions.needsUpdate = true;
+            
+            // Update info display
+            document.getElementById('input-theta').textContent = angleDegrees.toFixed(0) + '°';
+            document.getElementById('position-xy').textContent = 
+                `(${x.toFixed(2)}, ${y.toFixed(2)})`;
+            document.getElementById('output-value').textContent = 
+                (Math.atan2(y, x) * (180 / Math.PI)).toFixed(1) + '°';
+            
+            // Update 2D graph
+            window.draw2DGraph(angleDegrees);
+        }
+        
+        function updateCameraFromOrbit() {
+            const az = THREE.MathUtils.degToRad(cameraParams.azimuth);
+            const el = THREE.MathUtils.degToRad(cameraParams.elevation);
+            
+            const x = cameraParams.zoom * Math.cos(el) * Math.cos(az);
+            const y = cameraParams.zoom * Math.cos(el) * Math.sin(az);
+            const z = cameraParams.zoom * Math.sin(el);
+            
+            camera.up.set(0, 0, 1);
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+        }
+        
+        function initControls() {
+            // Camera controls
+            const azimuthSlider = document.getElementById('azimuth');
+            const azimuthValue = document.getElementById('azimuth-value');
+            
+            azimuthSlider.addEventListener('input', (e) => {
+                cameraParams.azimuth = parseFloat(e.target.value);
+                azimuthValue.textContent = cameraParams.azimuth;
+                updateCameraFromOrbit();
+            });
+            
+            const elevationSlider = document.getElementById('elevation');
+            const elevationValue = document.getElementById('elevation-value');
+            
+            elevationSlider.addEventListener('input', (e) => {
+                cameraParams.elevation = parseFloat(e.target.value);
+                elevationValue.textContent = cameraParams.elevation;
+                updateCameraFromOrbit();
+            });
+            
+            const zoomSlider = document.getElementById('zoom');
+            const zoomValue = document.getElementById('zoom-value');
+            
+            zoomSlider.addEventListener('input', (e) => {
+                cameraParams.zoom = parseFloat(e.target.value);
+                zoomValue.textContent = cameraParams.zoom;
+                updateCameraFromOrbit();
+            });
+            
+            // Unit circle controls
+            document.getElementById('show-circle').addEventListener('change', (e) => {
+                unitCircle.visible = e.target.checked;
+            });
+            
+            document.getElementById('show-trace').addEventListener('change', (e) => {
+                heightTrace.visible = e.target.checked;
+                verticalLine.visible = e.target.checked;
+            });
+            
+            document.getElementById('animate-circle').addEventListener('change', (e) => {
+                isAnimating = e.target.checked;
+                if (!isAnimating) {
+                    animationAngle = parseFloat(document.getElementById('angle-position').value);
+                }
+            });
+            
+            // Branch cut controls
+            document.getElementById('open-seam').addEventListener('change', (e) => {
+                branchCutSettings.openSeam = e.target.checked;
+                rebuildSurface();
+            });
+            
+            document.getElementById('duplicate-vertices').addEventListener('change', (e) => {
+                branchCutSettings.duplicateVertices = e.target.checked;
+                if (branchCutSettings.openSeam) {
+                    rebuildSurface();
+                }
+            });
+            
+            document.getElementById('two-sheet').addEventListener('change', (e) => {
+                branchCutSettings.twoSheet = e.target.checked;
+                if (e.target.checked) {
+                    // Auto-enable open seam for two-sheet mode
+                    document.getElementById('open-seam').checked = true;
+                    branchCutSettings.openSeam = true;
+                }
+                rebuildSurface();
+            });
+            
+            document.getElementById('mask-seam').addEventListener('change', (e) => {
+                branchCutSettings.maskSeam = e.target.checked;
+                rebuildSurface();
+            });
+            
+            const angleSlider = document.getElementById('angle-position');
+            const angleValue = document.getElementById('angle-value');
+            
+            angleSlider.addEventListener('input', (e) => {
+                if (!isAnimating) {
+                    animationAngle = parseFloat(e.target.value);
+                    angleValue.textContent = animationAngle;
+                    updatePoint(animationAngle);
+                }
+            });
+            
+            // Mouse controls for 3D view
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                mouseDown = false;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!mouseDown) return;
+                
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                cameraParams.azimuth += deltaX * 0.5;
+                cameraParams.elevation = Math.max(-89, Math.min(89, 
+                    cameraParams.elevation - deltaY * 0.5));
+                
+                cameraParams.azimuth = ((cameraParams.azimuth % 360) + 360) % 360;
+                
+                azimuthSlider.value = cameraParams.azimuth;
+                azimuthValue.textContent = Math.round(cameraParams.azimuth);
+                elevationSlider.value = cameraParams.elevation;
+                elevationValue.textContent = Math.round(cameraParams.elevation);
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                updateCameraFromOrbit();
+            });
+            
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                const delta = e.deltaY > 0 ? 1 : -1;
+                cameraParams.zoom = Math.max(3, Math.min(15, 
+                    cameraParams.zoom + delta * 0.5));
+                
+                zoomSlider.value = cameraParams.zoom;
+                zoomValue.textContent = cameraParams.zoom;
+                
+                updateCameraFromOrbit();
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Animate the point along the circle
+            if (isAnimating) {
+                animationAngle += 0.5;
+                if (animationAngle >= 360) animationAngle = 0;
+                
+                updatePoint(animationAngle);
+                
+                // Update slider position
+                document.getElementById('angle-position').value = animationAngle;
+                document.getElementById('angle-value').textContent = Math.round(animationAngle);
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = (window.innerWidth - 400) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 400, window.innerHeight);
+            
+            // Resize 2D canvas
+            const canvas = document.getElementById('2d-canvas');
+            canvas.height = window.innerHeight - 60;
+            window.draw2DGraph(animationAngle);
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<div class="slide">
+    <h1>Key Takeaways</h1>
+    
+    <div class="main-takeaway">
+        <h2>🎯 The Golden Rule</h2>
+        <div class="golden-rule">
+            <p>When you see a quantity that wraps around,</p>
+            <p><strong>ask: "Can I embed this on a circle?"</strong></p>
+        </div>
+    </div>
+    
+    <div class="practical-steps">
+        <h3>Your Debugging Checklist</h3>
+        <div class="checklist">
+            <div class="check-item">
+                <span class="checkbox">✓</span>
+                <div>
+                    <h4>Spot the Wraparound</h4>
+                    <p>Does your value jump discontinuously? (359° → 0°, 11:59 PM → 12:00 AM)</p>
+                </div>
+            </div>
+            
+            <div class="check-item">
+                <span class="checkbox">✓</span>
+                <div>
+                    <h4>Identify the Period</h4>
+                    <p>What's the cycle length? (360° for angles, 24 hours for time, 7 for weekdays)</p>
+                </div>
+            </div>
+            
+            <div class="check-item">
+                <span class="checkbox">✓</span>
+                <div>
+                    <h4>Choose Your Embedding</h4>
+                    <p>Usually: <code style="display: inline-block;">(cos(<span style="display: inline-block; vertical-align: middle;"><span style="display: block; text-align: center; border-bottom: 1px solid;">2πx</span><span style="display: block; text-align: center;">T</span></span>), sin(<span style="display: inline-block; vertical-align: middle;"><span style="display: block; text-align: center; border-bottom: 1px solid;">2πx</span><span style="display: block; text-align: center;">T</span></span>))</code> where <code>T</code> is the period</p>
+                </div>
+            </div>
+            
+            <div class="check-item">
+                <span class="checkbox">✓</span>
+                <div>
+                    <h4>Work in Vector Space</h4>
+                    <p>Do all math on the vectors, not the raw values</p>
+                </div>
+            </div>
+            
+            <div class="check-item">
+                <span class="checkbox">✓</span>
+                <div>
+                    <h4>Project Back When Needed</h4>
+                    <p>Use <code>atan2(y, x)</code> to recover the original quantity</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="libraries-section">
+        <h3>Don't Reinvent: Use Libraries!</h3>
+        <div class="library-grid">
+            <div class="library">
+                <h4>Python</h4>
+                <ul>
+                    <li><code>scipy.stats.circmean</code></li>
+                    <li><code>astropy.coordinates</code></li>
+                    <li><code>pyquaternion</code></li>
+                </ul>
+            </div>
+            
+            <div class="library">
+                <h4>JavaScript</h4>
+                <ul>
+                    <li><code>d3-interpolate</code></li>
+                    <li><code>three.js Quaternion</code></li>
+                    <li><code>tinycolor2</code></li>
+                </ul>
+            </div>
+            
+            <div class="library">
+                <h4>C++</h4>
+                <ul>
+                    <li><code>Eigen::AngleAxis</code></li>
+                    <li><code>boost::geometry</code></li>
+                    <li><code>tf2</code> (ROS)</li>
+                </ul>
+            </div>
+            
+            <div class="library">
+                <h4>MATLAB</h4>
+                <ul>
+                    <li><code>circstat toolbox</code></li>
+                    <li><code>Aerospace Toolbox</code></li>
+                    <li><code>angle()</code>, <code>unwrap()</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="red-flags">
+        <h3>🚩 Red Flags in Your Code</h3>
+        <div class="flag-list">
+            <div class="flag">
+                <code>if (angle > 180) angle -= 360;</code>
+                <span>→ Use circular math instead</span>
+            </div>
+            <div class="flag">
+                <code>if (crossed_midnight) /* special case */</code>
+                <span>→ Embed on 24-hour circle</span>
+            </div>
+            <div class="flag">
+                <code>while (phase > π) phase -= 2π;</code>
+                <span>→ Work with complex exponentials</span>
+            </div>
+            <div class="flag">
+                <code>// TODO: handle wraparound</code>
+                <span>→ Today's the day!</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-story">
+        <div class="story-content">
+            <h3>🎉 Success Story</h3>
+            <p>"After this talk, I fixed a 3-year-old GPS bearing bug in 5 lines of code. The robot finally drives in straight lines!"</p>
+            <cite>— Future You</cite>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,127 @@
+<div class="slide">
+    <h1>Discrete Calculus on Circles: Data-Driven Operations</h1>
+    
+    <div class="info-box">
+        <h3>📊 Real-World Data = Discrete Samples</h3>
+        <p>In practice, we don't have continuous functions—we have <strong>time series data</strong> of circular quantities. How do we compute derivatives and integrals when our data wraps around?</p>
+    </div>
+    
+    <div class="two-column-equal">
+        <div class="card">
+            <h3>📈 Discrete Derivatives (Angular Velocity)</h3>
+            <div class="code-example">
+                <pre><code class="language-python"># WRONG: Naive difference breaks at wraparound
+angles = [358°, 359°, 1°, 2°]  # Smooth rotation
+naive_diff = [1°, 2°, -357°]  # HUGE SPIKE! 💥
+
+# RIGHT: Vector space derivative
+vectors = [(cos(θ), sin(θ)) for θ in angles]
+dvdt = [(v[i+1] - v[i])/dt for i in range(len(v)-1)]
+
+# Angular velocity from vector derivative
+ω = cross_product(v[i], dvdt[i]) / |v[i]|²
+# Result: [1°/s, 1°/s, 1°/s] ✅</code></pre>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>📉 Discrete Integrals (Accumulated Rotation)</h3>
+            <div class="code-example">
+                <pre><code class="language-python"># WRONG: Sum angles directly
+angular_velocities = [90°/s, 90°/s, 90°/s, 90°/s]
+naive_sum = sum(angular_velocities) * dt  # 360°???
+
+# RIGHT: Accumulate in vector space
+v_accumulated = [1, 0]  # Start at 0°
+for ω in angular_velocities:
+    # Rotate vector by angular increment
+    dθ = ω * dt
+    rotation = [[cos(dθ), -sin(dθ)],
+                [sin(dθ), cos(dθ)]]
+    v_accumulated = rotation @ v_accumulated
+
+final_angle = atan2(v_accumulated)  # Correct!</code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-box">
+        <h3>🔧 Practical Applications in Data Science</h3>
+        <div class="two-column">
+            <div>
+                <h4>🌊 Wind Speed Analysis</h4>
+                <div class="code-example">
+                    <pre><code class="language-python"># Wind direction time series (sampled every hour)
+wind_dirs = [350°, 355°, 0°, 5°, 10°]  # North-ish
+wind_speeds = [10, 12, 15, 14, 11]  # mph
+
+# Compute wind vector components
+u = [-speed * sin(dir) for speed, dir in zip(wind_speeds, wind_dirs)]
+v = [-speed * cos(dir) for speed, dir in zip(wind_speeds, wind_dirs)]
+
+# Now can compute proper derivatives!
+du_dt = np.gradient(u)  # Wind acceleration (east)
+dv_dt = np.gradient(v)  # Wind acceleration (north)</code></pre>
+                </div>
+            </div>
+            <div>
+                <h4>🤖 Robot Heading Tracking</h4>
+                <div class="code-example">
+                    <pre><code class="language-python"># IMU gives heading samples at 100Hz
+headings = sensor.get_heading_buffer()  # [θ₁, θ₂, ..., θₙ]
+dt = 0.01  # 10ms between samples
+
+# Convert to unit vectors
+vectors = [(cos(h), sin(h)) for h in headings]
+
+# Compute angular velocity using discrete derivative
+angular_vel = []
+for i in range(len(vectors)-1):
+    # Cross product gives rotation rate
+    ω = (vectors[i][0]*vectors[i+1][1] - 
+         vectors[i][1]*vectors[i+1][0]) / dt
+    angular_vel.append(ω)
+
+# Smooth using windowed average (no wraparound issues!)
+smoothed_ω = moving_average(angular_vel, window=10)</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="warning-box">
+        <h3>⚠️ Common Pitfalls with Discrete Circular Data</h3>
+        <div class="three-column">
+            <div>
+                <h4>❌ Phase Unwrapping</h4>
+                <p><code>unwrap([350°, 10°])</code> → <code>[350°, 370°]</code></p>
+                <p>Creates artificial trends! Use vectors instead.</p>
+            </div>
+            <div>
+                <h4>❌ Modulo Arithmetic</h4>
+                <p><code>(θ₂ - θ₁) % 360</code></p>
+                <p>Loses direction info. Vector difference preserves it.</p>
+            </div>
+            <div>
+                <h4>❌ Averaging Raw Angles</h4>
+                <p><code>mean([0°, 90°, 180°, 270°])</code> → <code>135°</code></p>
+                <p>Should be undefined! Vector mean → 0.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="highlight-box">
+        <h3>🎯 The Key Pattern for Discrete Operations</h3>
+        <div class="formula-showcase">
+            <div style="text-align: center; padding: 20px;">
+                <p style="font-size: 18px; margin: 10px 0;">
+                    <strong>Discrete Samples</strong> → <strong>Vector Time Series</strong> → <strong>Standard Numpy Operations</strong> → <strong>Interpret Results</strong>
+                </p>
+                <p style="margin-top: 20px;">
+                    <code>θ[t]</code> → <code>[cos(θ[t]), sin(θ[t])]</code> → <code>np.gradient(), np.cumsum()</code> → <code>atan2() if needed</code>
+                </p>
+            </div>
+        </div>
+        <p><strong>Bottom Line:</strong> NumPy/Pandas operations "just work" on vector representations—no special circular functions needed!</p>
+    </div>
+</div>

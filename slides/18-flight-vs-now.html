@@ -1,0 +1,249 @@
+<div class="slide flight-now">
+  <style>
+    .flight-now {
+      padding: 3vh 4vw;
+      display: flex;
+      flex-direction: column;
+      gap: 2vh;
+    }
+
+    .flight-now h2 {
+      text-align: center;
+      margin-bottom: 1vh;
+      background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 3vw;
+      flex: 1;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 2vh 2vw;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .left.panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5vh;
+    }
+
+    .left.panel h3 {
+      margin: 0 0 1vh 0;
+      color: #4ecdc4;
+      font-size: 1.4em;
+    }
+
+    .row {
+      display: flex;
+      gap: 1vw;
+      align-items: center;
+    }
+
+    .row input, .row button, .row select {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+
+    .row input:focus, .row button:focus, .row select:focus {
+      outline: none;
+      border-color: #4ecdc4;
+      box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+    }
+
+    .row button {
+      background: #4ecdc4;
+      color: #0d1117;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .row button:hover {
+      background: #3bb5a8;
+    }
+
+    label {
+      font-weight: 600;
+      color: #f0f6fc;
+      font-size: 0.9em;
+      margin-bottom: 0.5vh;
+      display: block;
+    }
+
+    .muted {
+      color: #7d8590;
+      font-size: 0.85em;
+    }
+
+    .notes {
+      padding: 1vh;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      border-left: 3px solid #4ecdc4;
+    }
+
+    .g { color: #3fb950; }
+    .r { color: #f85149; }
+    .b { color: #58a6ff; }
+
+    .right.panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5vh;
+    }
+
+    #utc-timeline {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .outputs {
+      display: flex;
+      flex-direction: column;
+      gap: 1vh;
+    }
+
+    .chip {
+      padding: 0.8vh 1.2vw;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+
+    .chip.g {
+      background: rgba(63, 185, 80, 0.15);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    .chip.r {
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+
+    .chip.b {
+      background: rgba(88, 166, 255, 0.15);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+    }
+
+    .local-readouts {
+      padding: 1vh;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      text-align: center;
+      font-size: 0.85em;
+    }
+
+    .dst-controls {
+      display: none;
+      background: rgba(255, 193, 7, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: 6px;
+      padding: 1vh;
+      font-size: 0.85em;
+    }
+
+    .dst-controls.show {
+      display: block;
+    }
+
+    .ring-explainer {
+      background: rgba(78, 205, 196, 0.1);
+      border: 1px solid rgba(78, 205, 196, 0.3);
+      border-radius: 8px;
+      padding: 1.5vh 1.5vw;
+      margin-top: 1vh;
+    }
+
+    .ring-explainer h4 {
+      margin: 0 0 1vh 0;
+      color: #4ecdc4;
+      font-size: 1em;
+    }
+
+    .ring-explainer ul {
+      margin: 0;
+      padding-left: 1.5em;
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+
+    .ring-explainer li {
+      margin-bottom: 0.3em;
+    }
+  </style>
+
+  <h2>Flight vs Now: Timezone Ring Embedding</h2>
+
+  <div class="grid">
+    <div class="left panel">
+      <h3>Times & Timezones</h3>
+
+      <label>Flight ended in Sydney today at:</label>
+      <div class="row">
+        <input id="syd-date" type="date" value="2025-09-15" style="display: none;">
+        <input id="syd-time" type="time" step="900" value="08:10">
+        <span class="muted">Sydney time (Australia/Sydney)</span>
+      </div>
+
+      <div id="dst-controls" class="dst-controls">
+        <div>⚠️ <strong>DST transition detected!</strong></div>
+        <div id="dst-message"></div>
+      </div>
+
+      <label>Compared with current time in San Francisco</label>
+      <div class="muted" style="margin-left: 1vw;">
+        <span id="sf-now-readout">Automatically set to current time</span>
+      </div>
+
+      <div class="notes">
+        Both deltas shown: <span class="g">correct (UTC instants)</span> & <span class="r">naive (local wall times)</span>.
+        The naive approach fails because it ignores timezone offsets and DST transitions.
+      </div>
+
+      <div class="ring-explainer">
+        <h4>🔄 Ring Embedding Approach</h4>
+        <ul>
+          <li><strong>Instants:</strong> Linear UTC timeline → safe arithmetic</li>
+          <li><strong>Local times:</strong> 24h circular ring → avoid midnight jumps</li>
+          <li><strong>Naive error:</strong> Treats different timezone "rings" as same coordinates</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="right panel">
+      <h3>Timeline Comparison</h3>
+      <svg id="utc-timeline" viewBox="0 0 900 320" aria-label="Dual timeline comparison" style="width: 100%; height: auto; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+        <!-- Dual timelines will be drawn here by JavaScript -->
+      </svg>
+
+      <div class="outputs">
+        <div class="chip g">Δt (correct): <span id="dt-correct">Calculate times first</span></div>
+        <div class="chip r">Δt (naive): <span id="dt-naive">Calculate times first</span> <span class="muted">(misleading)</span></div>
+        <div class="chip b">Offset difference: <span id="offset-diff">—</span></div>
+      </div>
+
+      <div class="local-readouts muted">
+        <div><strong>Local readouts:</strong></div>
+        <div id="syd-readout">Sydney: Set time above</div>
+        <div id="sf-readout">San Francisco: Current time</div>
+      </div>
+    </div>
+  </div>
+</div>
+

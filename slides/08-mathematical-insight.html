@@ -1,0 +1,100 @@
+<div class="slide">
+    <h1>The Mathematical Insight</h1>
+    
+    <div class="info-box">
+        <h3>Why Does This Work?</h3>
+        <div class="visual-demo">
+            <svg width="600" height="150" viewBox="0 0 600 150">
+                <!-- Line with endpoints -->
+                <g transform="translate(100, 75)">
+                    <line x1="-60" y1="0" x2="60" y2="0" stroke="#333" stroke-width="3"/>
+                    <circle cx="-60" cy="0" r="6" fill="#FF5722"/>
+                    <circle cx="60" cy="0" r="6" fill="#FF5722"/>
+                    <text x="0" y="30" text-anchor="middle" font-size="14" fill="#FFC107">Line has endpoints</text>
+                </g>
+                
+                <!-- vs -->
+                <text x="300" y="80" text-anchor="middle" font-size="20" fill="#FFC107">vs</text>
+                
+                <!-- Circle -->
+                <g transform="translate(500, 40)">
+                    <circle cx="0" cy="0" r="50" fill="none" stroke="#333" stroke-width="3"/>
+                    <text x="0" y="70" text-anchor="middle" font-size="14" fill="#FFC107">Circle has none!</text>
+                </g>
+            </svg>
+        </div>
+        <p class="text-center">A circle (S¹) is topologically different from a line segment. Linear math breaks at the wraparound point.</p>
+    </div>
+    
+    <div class="two-column-equal">
+        <div class="card">
+            <h3>🌐 The Circle Problem</h3>
+            <ul>
+                <li><strong>Circles have no "beginning" or "end"</strong></li>
+                <li>359° and 1° are neighbors</li>
+                <li>But arithmetic says 359 - 1 = 358 🤦</li>
+                <li>→ Solution: Use 2D vectors instead!</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h3>🔄 The Wrapping Function</h3>
+            <svg width="300" height="120" viewBox="0 0 300 120">
+                <path d="M 20 80 Q 70 20, 120 80 T 220 80 T 280 80" stroke="#2196F3" stroke-width="3" fill="none"/>
+                <text x="50" y="60" text-anchor="middle" font-size="12" fill="#FFC107">0°</text>
+                <text x="120" y="60" text-anchor="middle" font-size="12" fill="#FFC107">360°</text>
+                <text x="190" y="60" text-anchor="middle" font-size="12" fill="#FFC107">720°</text>
+                <text x="260" y="60" text-anchor="middle" font-size="12" fill="#FFC107">1080°</text>
+            </svg>
+            <p>Angles wrap around: 370° = 10°, 730° = 10°, etc. The infinite line wraps onto the finite circle.</p>
+        </div>
+    </div>
+    
+    <div class="success-box">
+        <h3>🔑 The Universal Pattern</h3>
+        <div class="process-flow">
+            <div class="process-step">
+                <h4>Problem Space</h4>
+                <p>Non-linear manifold</p>
+                <small>(circle, sphere, torus)</small>
+            </div>
+            <div class="process-step">
+                <h4>Embedding</h4>
+                <p>Lift to linear space</p>
+                <small>(ℝ², ℝ³, ℂ)</small>
+            </div>
+            <div class="process-step">
+                <h4>Computation</h4>
+                <p>Do linear algebra</p>
+                <small>(add, average, interpolate)</small>
+            </div>
+            <div class="process-step">
+                <h4>Projection</h4>
+                <p>Map back to manifold</p>
+                <small>(atan2, normalize)</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="two-column">
+        <div class="warning-box">
+            <h3>🎯 Where Else This Appears</h3>
+            <ul>
+                <li><strong>Quaternions:</strong> 3D rotations in 4D space</li>
+                <li><strong>Complex Numbers:</strong> 2D rotations in ℂ</li>
+                <li><strong>Fourier Transform:</strong> Signals on unit circle</li>
+                <li><strong>Neural Networks:</strong> Learned embeddings</li>
+            </ul>
+        </div>
+        
+        <div class="highlight-box">
+            <h3>💭 Mathematical Insight</h3>
+            <blockquote style="font-style: italic; margin: 10px 0;">
+                "The introduction of numbers as coordinates is an act of violence."
+                <br><cite style="font-size: 14px;">— Hermann Weyl</cite>
+            </blockquote>
+            <p><strong>But sometimes, the right coordinates make the violence worthwhile!</strong></p>
+        </div>
+    </div>
+</div>
+

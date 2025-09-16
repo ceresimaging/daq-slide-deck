@@ -1,0 +1,342 @@
+<div class="slide color-interpolation">
+  <style>
+    /* Scoped styles for color interpolation slide */
+    .color-interpolation {
+      padding: 2vh 3vw;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5vh;
+    }
+
+    .color-interpolation h1 {
+      font-size: clamp(24px, 3vw, 40px);
+      margin: 0 0 1vh 0;
+      text-align: center;
+      background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .color-interpolation .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 1vh;
+    }
+
+    .color-interpolation .drag-wrap {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+      align-items: start;
+      flex: 1;
+    }
+
+    @media (max-width: 960px) {
+      .color-interpolation .drag-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .color-interpolation .drag-wheel {
+      position: relative;
+      width: 400px;
+      height: 400px;
+      margin: 0 auto;
+    }
+
+    .color-interpolation .drag-wheel .wheel {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      /* Red at North: default starting position is top */
+      background: conic-gradient(
+        hsl(0, 100%, 50%),
+        hsl(60, 100%, 50%),
+        hsl(120, 100%, 50%),
+        hsl(180, 100%, 50%),
+        hsl(240, 100%, 50%),
+        hsl(300, 100%, 50%),
+        hsl(360, 100%, 50%)
+      );
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Concentric inner mask to make a neat ring (no offset) */
+    .color-interpolation .drag-wheel .mask {
+      position: absolute;
+      inset: 42px;
+      background: #0b1117;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .color-interpolation .drag-wheel svg {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+    }
+
+    .color-interpolation .legend2 {
+      display: grid;
+      gap: 8px;
+      color: #cfe0f1;
+      font-size: 14px;
+    }
+
+    .color-interpolation .chip-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .color-interpolation .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .color-interpolation .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35) inset;
+    }
+
+    .color-interpolation .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+        "Liberation Mono", monospace;
+    }
+
+    .color-interpolation .midbars {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .color-interpolation .midbars .bar {
+      height: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+    }
+  </style>
+
+  <h1>Drag the Hues on the Wheel</h1>
+
+  <div class="card">
+    <p>
+      Drag the two handles <strong>A</strong> and <strong>B</strong> on the hue
+      wheel. The vectors are colored by their hues. We show two "midpoints": the
+      <strong>correct circular midpoint</strong> (shortest arc,
+      <code>t=0.5</code>) and the <strong>naive linear midpoint</strong> (just
+      averaging numbers). Watch how naive linear often cuts through unrelated
+      hues.
+    </p>
+  </div>
+
+  <div class="drag-wrap">
+    <div class="drag-wheel" aria-label="Hue wheel with draggable handles">
+      <div class="wheel"></div>
+      <div class="mask"></div>
+      <svg id="dwSVG" viewBox="0 0 400 400" width="400" height="400">
+        <defs>
+          <filter id="vec-shadow">
+            <feDropShadow
+              dx="0"
+              dy="1"
+              stdDeviation="1.2"
+              flood-color="#000"
+              flood-opacity=".65"
+            />
+          </filter>
+        </defs>
+        <!-- guide ring -->
+        <circle
+          cx="200"
+          cy="200"
+          r="179"
+          fill="none"
+          stroke="rgba(255,255,255,.22)"
+          stroke-width="1"
+        />
+        <!-- arc between A and B (shortest arc) -->
+        <path
+          id="dwArc"
+          d=""
+          fill="none"
+          stroke="#FFD180"
+          stroke-width="5"
+          stroke-linecap="round"
+          stroke-dasharray="6,7"
+          opacity=".9"
+        />
+        <!-- vectors -->
+        <g id="vecA" filter="url(#vec-shadow)">
+          <line
+            id="lineA"
+            x1="200"
+            y1="200"
+            x2="200"
+            y2="42"
+            stroke="#fff"
+            stroke-width="7"
+          />
+          <circle
+            id="handleA"
+            cx="200"
+            cy="42"
+            r="9"
+            fill="#fff"
+            stroke="rgba(0,0,0,.5)"
+            stroke-width="2"
+          />
+          <text
+            id="labelA"
+            x="200"
+            y="28"
+            text-anchor="middle"
+            fill="#e6eef9"
+            font-size="13"
+          >
+            A
+          </text>
+        </g>
+        <g id="vecB" filter="url(#vec-shadow)">
+          <line
+            id="lineB"
+            x1="200"
+            y1="200"
+            x2="200"
+            y2="42"
+            stroke="#fff"
+            stroke-width="7"
+          />
+          <circle
+            id="handleB"
+            cx="200"
+            cy="42"
+            r="9"
+            fill="#fff"
+            stroke="rgba(0,0,0,.5)"
+            stroke-width="2"
+          />
+          <text
+            id="labelB"
+            x="200"
+            y="28"
+            text-anchor="middle"
+            fill="#e6eef9"
+            font-size="13"
+          >
+            B
+          </text>
+        </g>
+        <!-- correct midpoint vector -->
+        <g id="vecMid" filter="url(#vec-shadow)">
+          <line
+            id="lineMid"
+            x1="200"
+            y1="200"
+            x2="200"
+            y2="42"
+            stroke="#fff"
+            stroke-width="7"
+          />
+          <circle
+            id="handleMid"
+            cx="200"
+            cy="42"
+            r="9"
+            fill="#fff"
+            stroke="rgba(0,0,0,.5)"
+            stroke-width="2"
+          />
+          <text
+            id="labelMid"
+            x="200"
+            y="28"
+            text-anchor="middle"
+            fill="#e6eef9"
+            font-size="13"
+          >
+            circular mid
+          </text>
+        </g>
+        <!-- naive midpoint vector -->
+        <g id="vecNaive" filter="url(#vec-shadow)">
+          <line
+            id="lineNaive"
+            x1="200"
+            y1="200"
+            x2="200"
+            y2="42"
+            stroke="#fff"
+            stroke-width="5"
+            stroke-dasharray="4,6"
+          />
+          <circle
+            id="handleNaive"
+            cx="200"
+            cy="42"
+            r="7"
+            fill="#fff"
+            stroke="rgba(0,0,0,.5)"
+            stroke-width="2"
+          />
+          <text
+            id="labelNaive"
+            x="200"
+            y="28"
+            text-anchor="middle"
+            fill="#e6eef9"
+            font-size="12"
+          >
+            naive mid
+          </text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="legend2">
+      <div class="chip-row">
+        <div class="chip">
+          <span class="dot" id="dotA"></span>
+          <span class="mono">A: <span id="degA">0°</span></span>
+        </div>
+        <div class="chip">
+          <span class="dot" id="dotB"></span>
+          <span class="mono">B: <span id="degB">0°</span></span>
+        </div>
+        <div class="chip">
+          <span class="dot" id="dotMid"></span>
+          <span class="mono"
+            >Circular mid (t=0.5): <span id="degMid">0°</span></span
+          >
+        </div>
+        <div class="chip">
+          <span class="dot" id="dotNaive"></span>
+          <span class="mono">Naive mid: <span id="degNaive">0°</span></span>
+        </div>
+      </div>
+      <div class="midbars">
+        <div class="bar" id="barCircular" title="Circular midpoint path"></div>
+        <small>
+          Correct (circular): follows the shorter arc between A and B.
+        </small>
+        <div class="bar" id="barNaive" title="Naive midpoint colors"></div>
+        <small>
+          Naive (linear hue numbers): can jump across unrelated hues.
+        </small>
+      </div>
+    </div>
+  </div>
+</div>

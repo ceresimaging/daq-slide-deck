@@ -1,0 +1,133 @@
+<div class="slide">
+    <h1>The General Pattern</h1>
+    
+    <div class="pattern-table">
+        <h3>Any Circular Quantity Can Be Embedded!</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Wraparound Quantity</th>
+                    <th>Traditional Problems</th>
+                    <th>Embedding Solution</th>
+                    <th>Benefits</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Angle</strong><br>θ ∈ [0, 2π)</td>
+                    <td>Gimbal lock, discontinuities</td>
+                    <td>(cos θ, sin θ) ∈ ℝ²</td>
+                    <td>Smooth interpolation</td>
+                </tr>
+                <tr>
+                    <td><strong>Time of Day</strong><br>t ∈ [0, 24)</td>
+                    <td>Midnight wraparound</td>
+                    <td>(cos 2πt/24, sin 2πt/24)</td>
+                    <td>No special cases</td>
+                </tr>
+                <tr>
+                    <td><strong>Day of Week</strong><br>d ∈ {0..6}</td>
+                    <td>Weekend averaging</td>
+                    <td>e^(2πid/7) or 7D one-hot</td>
+                    <td>Correct statistics</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase</strong><br>φ ∈ [-π, π)</td>
+                    <td>Phase unwrapping</td>
+                    <td>e^(iφ) ∈ ℂ</td>
+                    <td>Natural operations</td>
+                </tr>
+                <tr>
+                    <td><strong>Encoder Position</strong><br>n ∈ [0, 4096)</td>
+                    <td>Rollover detection</td>
+                    <td>(cos 2πn/4096, sin 2πn/4096)</td>
+                    <td>Continuous tracking</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="universal-class">
+        <h3>One Class to Rule Them All</h3>
+        <pre><code class="language-python">class CircularQuantity:
+    """Universal handler for any quantity that wraps around"""
+    
+    def __init__(self, value, period):
+        self.period = period
+        self.value = value % period  # Normalize to [0, period)
+        
+        # THE KEY: Embed on unit circle
+        theta = 2 * np.pi * self.value / period
+        self.vec = np.array([np.cos(theta), np.sin(theta)])
+    
+    def shortest_distance_to(self, other):
+        """Always returns shortest signed distance"""
+        angle = np.arctan2(
+            self.vec[0] * other.vec[1] - self.vec[1] * other.vec[0],
+            self.vec[0] * other.vec[0] + self.vec[1] * other.vec[1]
+        )
+        return angle * self.period / (2 * np.pi)
+    
+    def average_with(self, others):
+        """Proper circular mean"""
+        all_vecs = [self.vec] + [o.vec for o in others]
+        mean_vec = np.mean(all_vecs, axis=0)
+        mean_vec /= np.linalg.norm(mean_vec)  # Renormalize
+        
+        angle = np.arctan2(mean_vec[1], mean_vec[0])
+        mean_value = angle * self.period / (2 * np.pi)
+        return CircularQuantity(mean_value, self.period)
+    
+    def interpolate_to(self, other, t):
+        """Smooth interpolation along shortest path"""
+        # SLERP for perfect circular interpolation
+        dot = np.dot(self.vec, other.vec)
+        omega = np.arccos(np.clip(dot, -1, 1))
+        
+        if abs(omega) < 1e-10:  # Vectors are identical
+            return self
+        
+        vec_t = (np.sin((1-t)*omega)/np.sin(omega) * self.vec +
+                 np.sin(t*omega)/np.sin(omega) * other.vec)
+        
+        angle = np.arctan2(vec_t[1], vec_t[0])
+        value = angle * self.period / (2 * np.pi)
+        return CircularQuantity(value, self.period)</code></pre>
+    </div>
+    
+    <div class="examples-grid">
+        <div class="example">
+            <h4>📐 Angles</h4>
+            <pre><code>a1 = CircularQuantity(350, 360)
+a2 = CircularQuantity(10, 360)
+dist = a1.shortest_distance_to(a2)
+# Result: 20°</code></pre>
+        </div>
+        
+        <div class="example">
+            <h4>⏰ Time</h4>
+            <pre><code>t1 = CircularQuantity(23.5, 24)
+t2 = CircularQuantity(0.5, 24)
+avg = t1.average_with([t2])
+# Result: 0.0 (midnight)</code></pre>
+        </div>
+        
+        <div class="example">
+            <h4>📅 Weekdays</h4>
+            <pre><code>days = [CircularQuantity(6, 7),  # Sat
+        CircularQuantity(0, 7),  # Sun
+        CircularQuantity(1, 7)]  # Mon
+avg = days[0].average_with(days[1:])
+# Result: 0 (Sunday)</code></pre>
+        </div>
+        
+        <div class="example">
+            <h4>🔄 Encoder</h4>
+            <pre><code>e1 = CircularQuantity(4090, 4096)
+e2 = CircularQuantity(10, 4096)
+delta = e1.shortest_distance_to(e2)
+# Result: 20 counts</code></pre>
+        </div>
+    </div>
+</div>
+

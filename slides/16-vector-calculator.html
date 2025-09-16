@@ -1,0 +1,43 @@
+<div class="slide" style="display:grid; gap:12px;">
+  <h1>🧮 Interactive Vector Calculator</h1>
+  
+  <div class="info-box">
+    <h3>Angle Arithmetic in Action</h3>
+    <p>Drag the red and blue handles around the circle to see vector addition and subtraction in real-time. The background shows the atan2 field - each color represents a different angle!</p>
+  </div>
+  
+  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+    <label for="vector-operation">Operation:</label>
+    <select id="vector-operation" style="padding:8px; border-radius:6px; background:#2d3748; color:white; border:1px solid #4a5568;">
+      <option value="addition">Vector Addition</option>
+      <option value="subtraction">Vector Subtraction</option>
+    </select>
+  </div>
+  
+  <div id="vector-calculator-container" style="width: 100%; height: 500px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,.15);"></div>
+  
+  <div class="success-box">
+    <h3>🎯 How It Works</h3>
+    <p><strong>Addition:</strong> Yellow vector = Red angle + Blue angle (vector rotation)</p>
+    <p><strong>Subtraction:</strong> Pink vector = Red angle - Blue angle (angular difference)</p>
+    <p>The colorful background shows the atan2 function - it maps every pixel's position to an angle!</p>
+  </div>
+  
+  <div class="code-example">
+    <h3>The Math Behind It</h3>
+    <pre><code class="language-python"># Vector addition in angle space
+def add_angles(angle1, angle2):
+    """Add two angles - equivalent to rotating one by the other"""
+    return (angle1 + angle2) % (2 * np.pi)
+
+def subtract_angles(angle1, angle2):
+    """Find angular difference between two angles"""
+    diff = angle1 - angle2
+    # Handle wraparound
+    if diff > np.pi:
+        diff -= 2 * np.pi
+    elif diff < -np.pi:
+        diff += 2 * np.pi
+    return diff</code></pre>
+  </div>
+</div>

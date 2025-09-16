@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circular Mean Demo - Enhanced</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+#gl {
+  z-index: 1;
+}
+
+#ui {
+  z-index: 2;
+  cursor: grab;
+}
+
+#ui.dragging {
+  cursor: grabbing;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0,0,0,0.7);
+  padding: 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.mode-btn {
+  padding: 6px 12px;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.mode-btn:hover {
+  color: #fff;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.7);
+  transition: color 0.2s;
+}
+
+.checkbox-label:hover {
+  color: #fff;
+}
+
+.checkbox-label input {
+  cursor: pointer;
+}
+
+.info {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  background: rgba(0,0,0,0.8);
+  padding: 10px 16px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  font-size: 13px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.info-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.info-label {
+  color: rgba(255,255,255,0.5);
+}
+
+.info-value {
+  color: #fff;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 3;
+  background: rgba(0,0,0,0.7);
+  padding: 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.legend-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.legend-color {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.probe-lens {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(2px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.probe-lens.active {
+  display: flex;
+}
+
+.probe-angle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.probe-coords {
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+}
+
+.angle-barcode {
+  position: absolute;
+  right: 120px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 360px;
+  z-index: 3;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.barcode-tick {
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background: rgba(255,255,255,0.3);
+}
+
+.barcode-tick.major {
+  height: 2px;
+  background: rgba(255,255,255,0.5);
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <canvas id="gl"></canvas>
+  <canvas id="ui"></canvas>
+  
+  <div class="controls">
+    <div class="mode-toggle">
+      <button class="mode-btn" data-mode="vector">Vector (Right)</button>
+      <button class="mode-btn" data-mode="linear">Linear (Wrong)</button>
+      <button class="mode-btn" data-mode="split">Split View</button>
+    </div>
+    
+    <div class="checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="showContours" checked>
+        <span>Angle contours</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showPhaseBands">
+        <span>Phase bands</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="relativeContours">
+        <span>Relative to μ</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showProbe">
+        <span>Probe lens</span>
+      </label>
+    </div>
+  </div>
+  
+  <div class="legend">
+    <div class="legend-title">Circular Mean Methods</div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #4ade80;"></div>
+      <span>Vector mean (correct)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #f87171;"></div>
+      <span>Linear mean (fails at wrap)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: rgba(255,255,255,0.2);"></div>
+      <span>Contours (isogons)</span>
+    </div>
+  </div>
+  
+  <div class="info">
+    <div class="info-item">
+      <span class="info-label">A:</span>
+      <span class="info-value" id="thetaA">0°</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">B:</span>
+      <span class="info-value" id="thetaB">0°</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Vector μ:</span>
+      <span class="info-value" id="muVector">0°</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Linear μ:</span>
+      <span class="info-value" id="muLinear">0°</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">|R|:</span>
+      <span class="info-value" id="rLength">1.00</span>
+    </div>
+  </div>
+  
+  <div class="probe-lens" id="probeLens">
+    <div class="probe-angle">θ = 0°</div>
+    <div class="probe-coords">(0.00, 0.00)</div>
+  </div>
+  
+  <div class="angle-barcode" id="angleBarcode"></div>
+</div>
+
+<script>
+// Enhanced WebGL Shader with contours and phase bands
+const vertexShaderSource = `
+  attribute vec2 a_position;
+  varying vec2 v_texCoord;
+  
+  void main() {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+    v_texCoord = a_position * 0.5 + 0.5;
+  }
+`;
+
+const fragmentShaderSource = `
+  precision highp float;
+  varying vec2 v_texCoord;
+  uniform float u_rotation;
+  uniform float u_mode; // 0=vector, 1=linear, 2=split
+  uniform float u_time;
+  uniform float u_showContours;
+  uniform float u_showPhaseBands;
+  uniform float u_relativeContours;
+  uniform float u_highlightAngle;
+  uniform float u_pulsePhase;
+  
+  const float PI = 3.14159265359;
+  const float TWO_PI = 6.28318530718;
+  
+  float wrapAngle(float a) {
+    return mod(a + PI, TWO_PI) - PI;
+  }
+  
+  vec3 angleToColor(float angle) {
+    float hue = angle / TWO_PI;
+    hue = fract(hue);
+    
+    float r = abs(hue * 6.0 - 3.0) - 1.0;
+    float g = 2.0 - abs(hue * 6.0 - 2.0);
+    float b = 2.0 - abs(hue * 6.0 - 4.0);
+    
+    vec3 rgb = clamp(vec3(r, g, b), 0.0, 1.0);
+    
+    // Add lightness variation for accessibility
+    float lightness = 0.4 + 0.1 * sin(angle);
+    rgb = rgb * 0.8 + lightness * 0.2;
+    
+    return rgb;
+  }
+  
+  float contourMask(float angle, float basis) {
+    float relAngle = wrapAngle(angle - basis);
+    float mask = 0.0;
+    
+    // Major contours every 15°
+    for (float deg = 0.0; deg < 360.0; deg += 15.0) {
+      float targetAngle = deg * PI / 180.0 - PI;
+      float dist = abs(wrapAngle(relAngle - targetAngle));
+      float weight = deg == 0.0 || abs(deg - 90.0) < 0.1 || abs(deg - 180.0) < 0.1 || abs(deg - 270.0) < 0.1 ? 0.008 : 0.005;
+      mask = max(mask, 1.0 - smoothstep(0.0, weight, dist));
+    }
+    
+    // Minor contours every 5°
+    for (float deg = 0.0; deg < 360.0; deg += 5.0) {
+      if (mod(deg, 15.0) > 0.1) {
+        float targetAngle = deg * PI / 180.0 - PI;
+        float dist = abs(wrapAngle(relAngle - targetAngle));
+        mask = max(mask, 0.3 * (1.0 - smoothstep(0.0, 0.003, dist)));
+      }
+    }
+    
+    // Highlight specific angle if requested
+    if (u_highlightAngle > -999.0) {
+      float dist = abs(wrapAngle(relAngle - u_highlightAngle));
+      float highlight = 1.0 - smoothstep(0.0, 0.01, dist);
+      
+      // Add pulse animation
+      highlight *= 0.7 + 0.3 * sin(u_pulsePhase * TWO_PI);
+      mask = max(mask, highlight);
+    }
+    
+    return mask;
+  }
+  
+  float phaseBands(float angle, float basis) {
+    float relAngle = wrapAngle(angle - basis);
+    float band = 0.5 + 0.5 * cos(relAngle * 360.0 / 10.0 * PI / 180.0);
+    return band * 0.05; // Very subtle
+  }
+  
+  void main() {
+    vec2 coord = (v_texCoord - 0.5) * 2.0;
+    float x = coord.x;
+    float y = coord.y;
+    
+    vec3 color;
+    float angle;
+    float contourBasis = 0.0;
+    
+    if (u_mode == 2.0 && coord.x < 0.0) {
+      // Split mode - left half is linear
+      angle = (x + 1.0) * PI;
+      color = angleToColor(angle);
+      
+      // Seam at x=0
+      if (abs(x) < 0.01) {
+        color = mix(color, vec3(1.0, 0.2, 0.2), 0.5);
+      }
+    } else if (u_mode == 1.0) {
+      // Linear mode - unwrapped angle space
+      angle = (x + 1.0) * PI;
+      color = angleToColor(angle);
+      
+      // Emphasize seam
+      if (abs(x + 1.0) < 0.02 || abs(x - 1.0) < 0.02) {
+        color = mix(color, vec3(1.0, 0.2, 0.2), 0.3);
+      }
+    } else {
+      // Vector mode - proper circular space
+      angle = atan(y, x);
+      if (u_relativeContours > 0.5 && u_mode == 0.0) {
+        contourBasis = u_rotation;
+      }
+      float displayAngle = angle - u_rotation;
+      color = angleToColor(displayAngle);
+    }
+    
+    // Add contours
+    if (u_showContours > 0.5) {
+      float contours = contourMask(angle, contourBasis);
+      color = mix(color, vec3(0.9), contours * 0.3);
+    }
+    
+    // Add phase bands
+    if (u_showPhaseBands > 0.5) {
+      float bands = phaseBands(angle, contourBasis);
+      color *= (1.0 + bands);
+    }
+    
+    // Grid overlay for structure
+    float gridX = abs(fract(coord.x * 8.0) - 0.5) * 2.0;
+    float gridY = abs(fract(coord.y * 8.0) - 0.5) * 2.0;
+    float grid = 1.0 - max(1.0 - gridX, 1.0 - gridY) * 0.05;
+    color *= grid;
+    
+    // Vignette
+    float dist = length(coord);
+    color *= 1.0 - dist * 0.15;
+    
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+// State management with enhanced features
+const state = {
+  thetaA: Math.PI * 0.25,
+  thetaB: Math.PI * 1.5,
+  mode: 'vector',
+  dragging: null,
+  animation: {
+    muCurrent: 0,
+    muTarget: 0,
+    velocity: 0
+  },
+  pulseAnimation: {
+    active: false,
+    time: 0,
+    position: { x: 0, y: 0 }
+  },
+  contourPulse: {
+    active: false,
+    angle: 0,
+    phase: 0
+  },
+  showContours: true,
+  showPhaseBands: false,
+  relativeContours: false,
+  showProbe: false,
+  highlightedAngle: -1000,
+  hoveredTick: null
+};
+
+// Initialize WebGL
+const glCanvas = document.getElementById('gl');
+const gl = glCanvas.getContext('webgl');
+
+// Initialize 2D Canvas
+const uiCanvas = document.getElementById('ui');
+const ctx = uiCanvas.getContext('2d');
+
+// Compile shader helper
+function compileShader(gl, source, type) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  
+  return shader;
+}
+
+// Create shader program
+function createProgram(gl, vertexSource, fragmentSource) {
+  const vertexShader = compileShader(gl, vertexSource, gl.VERTEX_SHADER);
+  const fragmentShader = compileShader(gl, fragmentSource, gl.FRAGMENT_SHADER);
+  
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Program linking error:', gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return null;
+  }
+  
+  return program;
+}
+
+// Setup WebGL
+const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+const rotationUniformLocation = gl.getUniformLocation(program, 'u_rotation');
+const modeUniformLocation = gl.getUniformLocation(program, 'u_mode');
+const timeUniformLocation = gl.getUniformLocation(program, 'u_time');
+const showContoursLocation = gl.getUniformLocation(program, 'u_showContours');
+const showPhaseBandsLocation = gl.getUniformLocation(program, 'u_showPhaseBands');
+const relativeContoursLocation = gl.getUniformLocation(program, 'u_relativeContours');
+const highlightAngleLocation = gl.getUniformLocation(program, 'u_highlightAngle');
+const pulsePhaseLocation = gl.getUniformLocation(program, 'u_pulsePhase');
+
+// Create buffer with quad vertices
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  -1, -1,
+   1, -1,
+  -1,  1,
+   1,  1,
+]), gl.STATIC_DRAW);
+
+// Math utilities
+function wrapAngle(angle) {
+  while (angle > Math.PI) angle -= 2 * Math.PI;
+  while (angle < -Math.PI) angle += 2 * Math.PI;
+  return angle;
+}
+
+function vectorMean(a, b) {
+  const vx = (Math.cos(a) + Math.cos(b)) / 2;
+  const vy = (Math.sin(a) + Math.sin(b)) / 2;
+  const length = Math.sqrt(vx * vx + vy * vy);
+  
+  if (length < 0.01) {
+    return { angle: null, length: 0 };
+  }
+  
+  return {
+    angle: Math.atan2(vy, vx),
+    length: length
+  };
+}
+
+function linearMean(a, b) {
+  return (a + b) / 2;
+}
+
+// Initialize angle barcode
+function initAngleBarcode() {
+  const barcode = document.getElementById('angleBarcode');
+  for (let deg = 0; deg < 360; deg += 5) {
+    const tick = document.createElement('div');
+    tick.className = 'barcode-tick';
+    if (deg % 30 === 0) tick.className += ' major';
+    tick.style.top = (deg / 360 * 100) + '%';
+    tick.dataset.angle = (deg - 180) * Math.PI / 180;
+    
+    // Color the tick
+    const hue = deg;
+    const lightness = 45 + 5 * Math.sin(deg * Math.PI / 180);
+    tick.style.background = `hsl(${hue}, 70%, ${lightness}%)`;
+    
+    barcode.appendChild(tick);
+  }
+}
+
+// Resize handler
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  
+  glCanvas.width = width * dpr;
+  glCanvas.height = height * dpr;
+  glCanvas.style.width = width + 'px';
+  glCanvas.style.height = height + 'px';
+  
+  uiCanvas.width = width * dpr;
+  uiCanvas.height = height * dpr;
+  uiCanvas.style.width = width + 'px';
+  uiCanvas.style.height = height + 'px';
+  
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  ctx.scale(dpr, dpr);
+}
+
+// Enhanced ring drawing with ticks and linkages
+function drawRing(cx, cy, radius) {
+  ctx.save();
+  
+  // Ring background
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Draw ticks
+  for (let deg = 0; deg < 360; deg += 15) {
+    const angle = deg * Math.PI / 180;
+    const inner = radius - 5;
+    const outer = deg % 30 === 0 ? radius + 8 : radius + 4;
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = deg % 30 === 0 ? 2 : 1;
+    
+    // Highlight if this angle is selected
+    if (state.hoveredTick !== null && Math.abs(wrapAngle(angle - state.hoveredTick)) < 0.1) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+    ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+    ctx.stroke();
+    
+    // Add degree labels for major ticks
+    if (deg % 30 === 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const labelRadius = radius + 18;
+      ctx.fillText(deg + '°', cx + Math.cos(angle) * labelRadius, cy + Math.sin(angle) * labelRadius);
+    }
+  }
+  
+  // Color gradient around ring
+  for (let i = 0; i < 360; i += 2) {
+    const angle = (i * Math.PI) / 180;
+    const hue = i;
+    const lightness = 45 + 5 * Math.sin(angle);
+    ctx.strokeStyle = `hsl(${hue}, 70%, ${lightness}%)`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 2, angle, angle + 0.035);
+    ctx.stroke();
+  }
+  
+  // Draw handles
+  const drawHandle = (angle, label, color) => {
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y);
+  };
+  
+  drawHandle(state.thetaA, 'A', '#3b82f6');
+  drawHandle(state.thetaB, 'B', '#8b5cf6');
+  
+  // Draw shortest arc
+  let startAngle = state.thetaA;
+  let endAngle = state.thetaB;
+  let diff = wrapAngle(endAngle - startAngle);
+  
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  if (diff > 0) {
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+  } else {
+    ctx.arc(cx, cy, radius, endAngle, startAngle);
+  }
+  ctx.stroke();
+  
+  // Draw mean markers with resultant length indicator
+  const vecMean = vectorMean(state.thetaA, state.thetaB);
+  const linMean = linearMean(state.thetaA, state.thetaB);
+  
+  if (state.mode === 'vector' || state.mode === 'split') {
+    if (vecMean.angle !== null) {
+      const x = cx + Math.cos(vecMean.angle) * radius;
+      const y = cy + Math.sin(vecMean.angle) * radius;
+      
+      // Resultant length dial
+      ctx.strokeStyle = `rgba(74, 222, 128, ${vecMean.length})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2 * vecMean.length);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('μ', x, y - 15);
+    }
+  }
+  
+  if (state.mode === 'linear' || state.mode === 'split') {
+    const x = cx + Math.cos(linMean) * radius;
+    const y = cy + Math.sin(linMean) * radius;
+    
+    ctx.fillStyle = '#f87171';
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('μ', x, y - 15);
+  }
+  
+  ctx.restore();
+}
+
+// Enhanced vector plane with contour linkages
+function drawVectorPlane(cx, cy, radius) {
+  ctx.save();
+  
+  // Unit circle
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Grid with rotation
+  const gridRotation = state.mode === 'vector' ? state.animation.muCurrent : 0;
+  
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(gridRotation);
+  
+  // Polar grid spokes - enhanced with highlights
+  for (let i = 0; i < 24; i++) {
+    const angle = (i * Math.PI * 2) / 24;
+    const isHighlighted = state.hoveredTick !== null && 
+      Math.abs(wrapAngle(angle - state.hoveredTick + gridRotation)) < 0.1;
+    
+    ctx.strokeStyle = isHighlighted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = isHighlighted ? 2 : 1;
+    
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(radius * 1.2, 0);
+    ctx.stroke();
+    
+    // Add tick marks on unit circle
+    if (i % 2 === 0) {
+      ctx.beginPath();
+      ctx.arc(radius, 0, 2, 0, Math.PI * 2);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+  
+  // Concentric circles
+  for (let r = radius / 4; r <= radius; r += radius / 4) {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  // Mean ruler (relative angle scale)
+  if (state.relativeContours && state.mode === 'vector') {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    
+    // Draw -90°, 0°, +90° markers relative to mean
+    for (let relAngle of [-Math.PI/2, 0, Math.PI/2]) {
+      ctx.save();
+      ctx.rotate(relAngle);
+      ctx.beginPath();
+      ctx.moveTo(radius - 10, 0);
+      ctx.lineTo(radius + 10, 0);
+      ctx.stroke();
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const label = relAngle === 0 ? '0°' : (relAngle < 0 ? '-90°' : '+90°');
+      ctx.fillText(label, radius + 20, 0);
+      ctx.restore();
+    }
+    ctx.setLineDash([]);
+  }
+  
+  ctx.restore();
+  
+  // Vectors
+  const drawVector = (angle, color, label) => {
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    // Arrowhead
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-8, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+  
+  drawVector(state.thetaA, '#3b82f6', 'vA');
+  drawVector(state.thetaB, '#8b5cf6', 'vB');
+  
+  // Mean vector with length visualization
+  const vecMean = vectorMean(state.thetaA, state.thetaB);
+  if (vecMean.angle !== null && (state.mode === 'vector' || state.mode === 'split')) {
+    const length = vecMean.length * radius;
+    const x = cx + Math.cos(vecMean.angle) * length;
+    const y = cy + Math.sin(vecMean.angle) * length;
+    
+    // Draw with opacity based on length
+    ctx.globalAlpha = 0.3 + 0.7 * vecMean.length;
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    // Arrowhead
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(vecMean.angle);
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-8, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    
+    ctx.globalAlpha = 1;
+  }
+  
+  // Correspondence pulse animation
+  if (state.contourPulse.active) {
+    const progress = state.contourPulse.phase;
+    const angle = state.contourPulse.angle;
+    
+    // Draw animated dot moving along the correspondence
+    const ringX = cx - 450;
+    const planeX = cx;
+    const lerpX = ringX + (planeX - ringX) * progress;
+    const lerpY = cy + Math.sin(angle) * radius * progress;
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`;
+    ctx.beginPath();
+    ctx.arc(lerpX, lerpY, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  ctx.restore();
+}
+
+function drawPulseRing() {
+  if (!state.pulseAnimation.active) return;
+  
+  const progress = state.pulseAnimation.time / 600;
+  if (progress > 1) {
+    state.pulseAnimation.active = false;
+    return;
+  }
+  
+  ctx.save();
+  const opacity = 1 - progress;
+  const scale = 1 + progress * 0.5;
+  
+  ctx.strokeStyle = `rgba(74, 222, 128, ${opacity})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(
+    state.pulseAnimation.position.x,
+    state.pulseAnimation.position.y,
+    20 * scale,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Probe lens micro-grid visualization
+function drawProbeLens(x, y) {
+  if (!state.showProbe) return;
+  
+  const lens = document.getElementById('probeLens');
+  lens.style.left = (x - 60) + 'px';
+  lens.style.top = (y - 60) + 'px';
+  lens.classList.add('active');
+  
+  // Calculate angle at cursor position
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const dx = x - (centerX + 200);
+  const dy = y - centerY;
+  const angle = Math.atan2(dy, dx);
+  const degrees = ((angle * 180 / Math.PI + 360) % 360).toFixed(0);
+  
+  lens.querySelector('.probe-angle').textContent = `θ = ${degrees}°`;
+  lens.querySelector('.probe-coords').textContent = `(${(dx/180).toFixed(2)}, ${(dy/180).toFixed(2)})`;
+  
+  // Draw micro-grid showing local transform
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // Input grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 0.5;
+  for (let i = -20; i <= 20; i += 10) {
+    ctx.beginPath();
+    ctx.moveTo(i, -20);
+    ctx.lineTo(i, 20);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-20, i);
+    ctx.lineTo(20, i);
+    ctx.stroke();
+  }
+  
+  // Show transform based on mode
+  if (state.mode === 'linear' && Math.abs(dx) < 20) {
+    // Show shear/tear at seam
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    ctx.lineTo(0, 30);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+}
+
+// Spring physics
+function updateSpring(dt) {
+  const k = 100;
+  const damping = 16;
+  
+  const force = -k * (state.animation.muCurrent - state.animation.muTarget);
+  const dampingForce = -damping * state.animation.velocity;
+  
+  const acceleration = force + dampingForce;
+  state.animation.velocity += acceleration * dt;
+  state.animation.muCurrent += state.animation.velocity * dt;
+  
+  state.animation.velocity = Math.max(-10, Math.min(10, state.animation.velocity));
+}
+
+// Main render loop
+let lastTime = 0;
+function render(time) {
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
+  
+  // Update animations
+  updateSpring(dt);
+  
+  if (state.pulseAnimation.active) {
+    state.pulseAnimation.time += dt * 1000;
+  }
+  
+  if (state.contourPulse.active) {
+    state.contourPulse.phase += dt * 2;
+    if (state.contourPulse.phase > 1) {
+      state.contourPulse.active = false;
+    }
+  }
+  
+  // Clear UI canvas
+  ctx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+  
+  // Draw WebGL background with contours
+  gl.useProgram(program);
+  
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.enableVertexAttribArray(positionAttributeLocation);
+  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+  
+  gl.uniform1f(rotationUniformLocation, state.animation.muCurrent);
+  gl.uniform1f(modeUniformLocation, 
+    state.mode === 'vector' ? 0 : 
+    state.mode === 'linear' ? 1 : 2
+  );
+  gl.uniform1f(timeUniformLocation, time / 1000);
+  gl.uniform1f(showContoursLocation, state.showContours ? 1 : 0);
+  gl.uniform1f(showPhaseBandsLocation, state.showPhaseBands ? 1 : 0);
+  gl.uniform1f(relativeContoursLocation, state.relativeContours ? 1 : 0);
+  gl.uniform1f(highlightAngleLocation, state.highlightedAngle);
+  gl.uniform1f(pulsePhaseLocation, state.contourPulse.phase);
+  
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  
+  // Draw UI elements
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const ringRadius = 150;
+  const planeRadius = 180;
+  
+  drawRing(centerX - 250, centerY, ringRadius);
+  drawVectorPlane(centerX + 200, centerY, planeRadius);
+  drawPulseRing();
+  
+  // Update info display
+  updateInfo();
+  
+  requestAnimationFrame(render);
+}
+
+// Update info panel
+function updateInfo() {
+  const toDeg = (rad) => ((rad * 180 / Math.PI + 360) % 360).toFixed(0);
+  
+  document.getElementById('thetaA').textContent = toDeg(state.thetaA) + '°';
+  document.getElementById('thetaB').textContent = toDeg(state.thetaB) + '°';
+  
+  const vecMean = vectorMean(state.thetaA, state.thetaB);
+  const linMean = linearMean(state.thetaA, state.thetaB);
+  
+  if (vecMean.angle !== null) {
+    document.getElementById('muVector').textContent = toDeg(vecMean.angle) + '°';
+  } else {
+    document.getElementById('muVector').textContent = 'undefined';
+  }
+  
+  document.getElementById('muLinear').textContent = toDeg(linMean) + '°';
+  document.getElementById('rLength').textContent = vecMean.length.toFixed(2);
+}
+
+// Enhanced interaction handlers
+uiCanvas.addEventListener('pointerdown', (e) => {
+  const rect = uiCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const ringX = centerX - 250;
+  const ringY = centerY;
+  const ringRadius = 150;
+  
+  // Check if clicking on a tick
+  const tickAngle = Math.atan2(y - ringY, x - ringX);
+  const tickDist = Math.sqrt((x - ringX) ** 2 + (y - ringY) ** 2);
+  if (Math.abs(tickDist - ringRadius) < 20) {
+    // Snap to nearest tick
+    const nearestTick = Math.round(tickAngle / (Math.PI / 12)) * (Math.PI / 12);
+    state.hoveredTick = nearestTick;
+    state.highlightedAngle = nearestTick;
+    
+    // Start correspondence pulse
+    state.contourPulse.active = true;
+    state.contourPulse.angle = nearestTick;
+    state.contourPulse.phase = 0;
+  }
+  
+  // Check handles
+  const checkHandle = (angle) => {
+    const hx = ringX + Math.cos(angle) * ringRadius;
+    const hy = ringY + Math.sin(angle) * ringRadius;
+    const dist = Math.sqrt((x - hx) ** 2 + (y - hy) ** 2);
+    return dist < 20;
+  };
+  
+  if (checkHandle(state.thetaA)) {
+    state.dragging = 'A';
+    uiCanvas.classList.add('dragging');
+    e.preventDefault();
+  } else if (checkHandle(state.thetaB)) {
+    state.dragging = 'B';
+    uiCanvas.classList.add('dragging');
+    e.preventDefault();
+  }
+});
+
+uiCanvas.addEventListener('pointermove', (e) => {
+  const rect = uiCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Update probe lens
+  if (state.showProbe) {
+    drawProbeLens(x, y);
+  }
+  
+  if (!state.dragging) {
+    // Check for tick hover
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const ringX = centerX - 250;
+    const ringY = centerY;
+    const ringRadius = 150;
+    
+    const tickAngle = Math.atan2(y - ringY, x - ringX);
+    const tickDist = Math.sqrt((x - ringX) ** 2 + (y - ringY) ** 2);
+    
+    if (Math.abs(tickDist - ringRadius) < 20) {
+      const nearestTick = Math.round(tickAngle / (Math.PI / 12)) * (Math.PI / 12);
+      state.hoveredTick = nearestTick;
+      state.highlightedAngle = nearestTick;
+    } else {
+      state.hoveredTick = null;
+      state.highlightedAngle = -1000;
+    }
+    return;
+  }
+  
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const ringX = centerX - 250;
+  const ringY = centerY;
+  
+  const angle = Math.atan2(y - ringY, x - ringX);
+  
+  if (state.dragging === 'A') {
+    state.thetaA = angle;
+  } else if (state.dragging === 'B') {
+    state.thetaB = angle;
+  }
+  
+  // Update mean target
+  const vecMean = vectorMean(state.thetaA, state.thetaB);
+  if (vecMean.angle !== null) {
+    state.animation.muTarget = vecMean.angle;
+  }
+});
+
+uiCanvas.addEventListener('pointerup', (e) => {
+  if (state.dragging) {
+    state.dragging = null;
+    uiCanvas.classList.remove('dragging');
+    
+    // Trigger pulse animation
+    const vecMean = vectorMean(state.thetaA, state.thetaB);
+    if (vecMean.angle !== null) {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const ringX = centerX - 250;
+      const ringY = centerY;
+      const ringRadius = 150;
+      
+      state.pulseAnimation.active = true;
+      state.pulseAnimation.time = 0;
+      state.pulseAnimation.position = {
+        x: ringX + Math.cos(vecMean.angle) * ringRadius,
+        y: ringY + Math.sin(vecMean.angle) * ringRadius
+      };
+    }
+  }
+});
+
+uiCanvas.addEventListener('pointerleave', () => {
+  state.hoveredTick = null;
+  state.highlightedAngle = -1000;
+  document.getElementById('probeLens').classList.remove('active');
+});
+
+// Mode toggle handlers
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const mode = e.target.dataset.mode;
+    state.mode = mode;
+    
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    
+    const vecMean = vectorMean(state.thetaA, state.thetaB);
+    if (mode === 'vector' && vecMean.angle !== null) {
+      state.animation.muTarget = vecMean.angle;
+    } else if (mode === 'linear') {
+      state.animation.muTarget = 0;
+    }
+  });
+});
+
+// Checkbox handlers
+document.getElementById('showContours').addEventListener('change', (e) => {
+  state.showContours = e.target.checked;
+});
+
+document.getElementById('showPhaseBands').addEventListener('change', (e) => {
+  state.showPhaseBands = e.target.checked;
+});
+
+document.getElementById('relativeContours').addEventListener('change', (e) => {
+  state.relativeContours = e.target.checked;
+});
+
+document.getElementById('showProbe').addEventListener('change', (e) => {
+  state.showProbe = e.target.checked;
+  if (!state.showProbe) {
+    document.getElementById('probeLens').classList.remove('active');
+  }
+});
+
+// Angle barcode interaction
+document.getElementById('angleBarcode').addEventListener('click', (e) => {
+  if (e.target.classList.contains('barcode-tick')) {
+    const angle = parseFloat(e.target.dataset.angle);
+    state.highlightedAngle = angle;
+    state.hoveredTick = angle;
+    
+    // Pulse animation
+    state.contourPulse.active = true;
+    state.contourPulse.angle = angle;
+    state.contourPulse.phase = 0;
+  }
+});
+
+// Keyboard controls
+document.addEventListener('keydown', (e) => {
+  const step = e.shiftKey ? Math.PI / 12 : Math.PI / 180;
+  
+  switch(e.key) {
+    case 'ArrowLeft':
+      if (state.dragging === 'A' || (!state.dragging && e.ctrlKey)) {
+        state.thetaA -= step;
+      } else {
+        state.thetaB -= step;
+      }
+      break;
+    case 'ArrowRight':
+      if (state.dragging === 'A' || (!state.dragging && e.ctrlKey)) {
+        state.thetaA += step;
+      } else {
+        state.thetaB += step;
+      }
+      break;
+    case 'c':
+      state.showContours = !state.showContours;
+      document.getElementById('showContours').checked = state.showContours;
+      break;
+    case 'p':
+      state.showPhaseBands = !state.showPhaseBands;
+      document.getElementById('showPhaseBands').checked = state.showPhaseBands;
+      break;
+    case 'r':
+      state.relativeContours = !state.relativeContours;
+      document.getElementById('relativeContours').checked = state.relativeContours;
+      break;
+    case 'l':
+      state.showProbe = !state.showProbe;
+      document.getElementById('showProbe').checked = state.showProbe;
+      if (!state.showProbe) {
+        document.getElementById('probeLens').classList.remove('active');
+      }
+      break;
+  }
+  
+  const vecMean = vectorMean(state.thetaA, state.thetaB);
+  if (vecMean.angle !== null && state.mode === 'vector') {
+    state.animation.muTarget = vecMean.angle;
+  }
+});
+
+// Parse URL parameters
+const params = new URLSearchParams(window.location.search);
+if (params.has('mode')) {
+  state.mode = params.get('mode');
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === state.mode);
+  });
+}
+if (params.has('a')) {
+  state.thetaA = parseFloat(params.get('a')) * Math.PI / 180;
+}
+if (params.has('b')) {
+  state.thetaB = parseFloat(params.get('b')) * Math.PI / 180;
+}
+
+// Initial setup
+initAngleBarcode();
+resize();
+window.addEventListener('resize', resize);
+
+// Set initial mode
+document.querySelector('[data-mode="vector"]').classList.add('active');
+
+// Set initial animation target
+const initialMean = vectorMean(state.thetaA, state.thetaB);
+if (initialMean.angle !== null) {
+  state.animation.muCurrent = initialMean.angle;
+  state.animation.muTarget = initialMean.angle;
+}
+
+// Start render loop
+requestAnimationFrame(render);
+
+// Handle visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Pause when hidden
+  } else {
+    lastTime = performance.now();
+  }
+});
+</script>
+
+</body>
+</html>

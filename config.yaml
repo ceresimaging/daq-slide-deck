@@ -1,0 +1,47 @@
+presentation:
+  title: "Stop Fighting Wraparound: Embed Your Rings!"
+  subtitle: "The One Math Trick That Fixes Circular Quantity Bugs"
+  author: "Geoff"
+  date: "2025-09-09"
+  venue: "CeresTalk"
+
+slides:
+  # Part 1: The Hook (Problem)
+  - "01-title.html"
+  - "02-the-bug.html"           # 350° + 10° = 180° wrong!
+  - "03-midnight-bug.html"      # 23:45 to 00:15 = -23.5 hours
+
+  # Part 2: The Payoff (Immediate Solution)
+  - "11-interactive-demo.html"  # Let them fix the first bug themselves!
+  - "05-robot-heading.html"     # Solve a critical real-world problem
+  - "06-color-interpolation.html" # Visual, intuitive example
+
+  # Part 3: The Revelation (This Is Everywhere)
+  - "15-other-circular-quantities.html" # Hidden rings everywhere
+  - "12-gis-demo.html"          # High-stakes GIS example
+  - "16-arbitrary-wrap-points.html" # Works for any wrap domain
+
+  # Part 4: The System (General Solution)
+  - "07-general-pattern.html"   # Universal CircularQuantity class
+  - "08-mathematical-insight.html" # Why this works
+
+  # Part 5: The Power-Ups (Advanced Capabilities)
+  - "04-the-solution.html"      # All the operations now available
+  - "13-circular-statistics.html" # Stats that actually work
+  - "14-discrete-calculus.html" # Data-driven derivatives
+
+  # Part 6: Conclusion
+  - "18-flight-photo-window.html"
+  - "09-takeaways.html"
+  - "10-questions.html"
+
+  # Commented out interactive tools (can be enabled if needed)
+  #- "16-vector-calculator.html"
+  #- "17-timeseries-analyzer.html"
+
+build:
+  single_file: true # Create single HTML file for phone calls
+  bundle_folder: true # Create folder bundle for full quality
+  webp_quality: 90 # WebP compression quality (0-100)
+  max_image_width: 1920 # Resize images larger than this
+  compress_json: true # Minify JSON files

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Circular Mean Visualization</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #f5f5f5;
+        overflow: hidden;
+      }
+      .container {
+        display: grid;
+        grid-template-columns: 220px 1fr 250px;
+        height: 100vh;
+        gap: 10px;
+        padding: 10px;
+      }
+      .controls,
+      .results {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+      }
+      h3 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        color: #333;
+      }
+      .control-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 5px;
+      }
+      select,
+      button {
+        width: 100%;
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+        border: none;
+        margin-top: 5px;
+      }
+      button:hover {
+        background: #0069d9;
+      }
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 10px;
+      }
+      .main-area {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 10px;
+      }
+      .panels-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .panel {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+      .panel canvas {
+        border-radius: 8px;
+        cursor: grab;
+      }
+      .panel canvas:active {
+        cursor: grabbing;
+      }
+      .panel-title {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #333;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2px 6px;
+        border-radius: 3px;
+        z-index: 10;
+      }
+      .results h3 {
+        margin-bottom: 15px;
+      }
+      .result-item {
+        margin-bottom: 10px;
+        padding: 8px;
+        background: #f8f8f8;
+        border-radius: 4px;
+      }
+      .result-label {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 3px;
+      }
+      .result-value {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .naive-result {
+        color: #e74c3c;
+      }
+      .circular-result {
+        color: #27ae60;
+      }
+      .error-result {
+        color: #e67e22;
+      }
+      .hint {
+        margin-top: 20px;
+        padding: 10px;
+        background: #ecf0f1;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #34495e;
+        line-height: 1.4;
+      }
+      #customAngles {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #666;
+      }
+      #customAngles div {
+        margin: 3px 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      #customAngles input {
+        width: 60px;
+        padding: 2px 4px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+      }
+      #customAngles .color-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      #atan2ViewBtns {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        z-index: 10;
+      }
+      #atan2ViewBtns button {
+        width: auto;
+        font-size: 10px;
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.8);
+        color: #333;
+        border: 1px solid #ccc;
+      }
+      #atan2ViewBtns button:hover {
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="controls">
+        <h3>Controls</h3>
+        <div class="control-group">
+          <label>Dataset</label>
+          <select id="presetSelect">
+            <option value="midnight">Crossing Midnight</option>
+            <option value="compass">Compass Cluster</option>
+            <option value="opposite">Opposite Sides</option>
+            <option value="random">Uniform Random</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="customAngles" style="display: none"></div>
+        <div class="control-group">
+          <label>Units</label>
+          <select id="unitsSelect">
+            <option value="deg">Degrees</option>
+            <option value="rad">Radians</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Symmetry k</label>
+          <input
+            type="range"
+            id="symmetrySlider"
+            min="1"
+            max="4"
+            value="1"
+            style="width: 100%"
+          />
+          <span id="symmetryValue">1</span>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="showNaive" checked />
+          <label for="showNaive">Show naive average</label>
+        </div>
+        <button id="regenerateBtn">Regenerate</button>
+      </div>
+
+      <div class="main-area">
+        <div class="panels-row">
+          <div class="panel">
+            <canvas id="linearCanvas"></canvas>
+            <div class="panel-title">1. Linear Space</div>
+          </div>
+          <div class="panel">
+            <canvas id="ringCanvas"></canvas>
+            <div class="panel-title">2. Ring Space (Angles)</div>
+          </div>
+        </div>
+        <div class="panels-row">
+          <div class="panel">
+            <canvas id="vectorCanvas"></canvas>
+            <div class="panel-title">3. Vector Space (Encoding)</div>
+          </div>
+          <div class="panel">
+            <div id="atan2Surface3d" style="width: 100%; height: 100%"></div>
+            <div id="atan2ViewBtns"></div>
+            <div class="panel-title">4. Result on atan2 Surface</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results">
+        <h3>Results</h3>
+        <div class="result-item">
+          <div class="result-label">Naive Mean</div>
+          <div class="result-value naive-result" id="naiveResult">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Circular Mean</div>
+          <div class="result-value circular-result" id="circularResult">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Error (Shortest Arc)</div>
+          <div class="result-value error-result" id="errorResult">--</div>
+        </div>
+        <div class="hint">
+          <strong>Key Insight:</strong><br />
+          By encoding angles as (x, y) vectors, we can average them correctly.
+          The `atan2(avg_y, avg_x)` function decodes the resulting vector back
+          to an angle, handling the "wrap-around" issue.
+        </div>
+        <div
+          id="zeroMagnitudeWarning"
+          style="
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #856404;
+          "
+        >
+          <strong>Warning:</strong> The average vector is near zero, so there's
+          no well-defined mean direction.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- 2D VISUALIZATION SCRIPT ---
+      const POINT_COLORS = [
+        "#9b59b6",
+        "#3498db",
+        "#2ecc71",
+        "#e67e22",
+        "#e74c3c",
+      ];
+      const COLS = {
+        embed: "#27ae60",
+        embedStroke: "#1e8449",
+        naive: "#e74c3c",
+        naiveStroke: "#c0392b",
+      };
+      const DIAMOND_SIZE = 8;
+      const TAU = Math.PI * 2;
+
+      let angles = [350, 355, 5, 10].map((deg) => (deg * Math.PI) / 180);
+      let symmetryK = 1,
+        showNaive = true,
+        units = "deg",
+        draggingPoint = null,
+        hoveredPoint = null;
+
+      const presets = {
+        midnight: [350, 355, 5, 10],
+        compass: [340, 350, 10, 20],
+        opposite: [45, 50, 225, 230],
+        random: () =>
+          Array(4)
+            .fill(0)
+            .map(() => Math.random() * 360),
+        custom: [0, 90, 180, 270],
+      };
+
+      const canvases = {
+        linear: document.getElementById("linearCanvas"),
+        ring: document.getElementById("ringCanvas"),
+        vector: document.getElementById("vectorCanvas"),
+      };
+      const contexts = {};
+      for (let key in canvases) {
+        contexts[key] = canvases[key].getContext("2d");
+      }
+
+      function mod2pi(angle) {
+        return ((angle % TAU) + TAU) % TAU;
+      }
+      function toDeg(rad) {
+        return (rad * 180) / Math.PI;
+      }
+      function toRad(deg) {
+        return (deg * Math.PI) / 180;
+      }
+      function formatAngle(rad) {
+        return units === "deg"
+          ? toDeg(rad).toFixed(1) + "°"
+          : rad.toFixed(3) + " rad";
+      }
+      function toVector(angle, k = 1) {
+        return { x: Math.cos(k * angle), y: Math.sin(k * angle) };
+      }
+
+      function circularMean(angles, k = 1) {
+        if (!angles.length) return { valid: false, angle: 0, r: 0 };
+        let sx = 0,
+          sy = 0;
+        for (const t of angles) {
+          sx += Math.cos(k * t);
+          sy += Math.sin(k * t);
+        }
+        const N = angles.length;
+        const r = Math.hypot(sx, sy) / N;
+        if (r < 1e-6) return { valid: false, angle: 0, r };
+        const theta = Math.atan2(sy, sx) / k;
+        return {
+          valid: true,
+          angle: mod2pi(theta),
+          r,
+          avgX: sx / N,
+          avgY: sy / N,
+        };
+      }
+
+      function naiveMean(angles) {
+        if (!angles.length) return 0;
+        let sum = angles.reduce((s, a) => s + a, 0);
+        return sum / angles.length;
+      }
+
+      function drawDiamond(ctx, x, y, size, fill, stroke) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x + size, y);
+        ctx.lineTo(x, y + size);
+        ctx.lineTo(x - size, y);
+        ctx.closePath();
+        if (fill) {
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+        if (stroke) {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function resizeCanvases() {
+        Object.values(canvases).forEach((canvas) => {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        });
+      }
+
+      function drawLinearSpace(ctx) {
+        const w = ctx.canvas.width,
+          h = ctx.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const margin = 40,
+          lineY = h / 2,
+          lineLeft = margin,
+          lineRight = w - margin,
+          lineWidth = lineRight - lineLeft;
+        const xFromTheta = (th) => lineLeft + (mod2pi(th) / TAU) * lineWidth;
+
+        ctx.strokeStyle = "#ddd";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(lineLeft, lineY);
+        ctx.lineTo(lineRight, lineY);
+        ctx.stroke();
+        ctx.fillStyle = "#666";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        for (let i = 0; i <= 4; i++) {
+          const x = lineLeft + (i / 4) * lineWidth;
+          ctx.beginPath();
+          ctx.moveTo(x, lineY - 5);
+          ctx.lineTo(x, lineY + 5);
+          ctx.stroke();
+          const label =
+            units === "deg" ? i * 90 + "°" : ((i * Math.PI) / 2).toFixed(2);
+          ctx.fillText(label, x, lineY + 20);
+        }
+
+        angles.forEach((angle, i) => {
+          const x = xFromTheta(angle);
+          ctx.fillStyle = POINT_COLORS[i];
+          ctx.beginPath();
+          ctx.arc(x, lineY, 6, 0, TAU);
+          ctx.fill();
+          if (hoveredPoint === i) {
+            ctx.strokeStyle = POINT_COLORS[i];
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, lineY, 9, 0, TAU);
+            ctx.stroke();
+          }
+        });
+
+        const cm = circularMean(angles, symmetryK),
+          naive = naiveMean(angles);
+        if (showNaive) {
+          const xn = xFromTheta(naive);
+          drawDiamond(ctx, xn, lineY - 24, DIAMOND_SIZE, null, COLS.naive);
+        }
+        if (cm.valid) {
+          const xc = xFromTheta(cm.angle);
+          drawDiamond(
+            ctx,
+            xc,
+            lineY + 24,
+            DIAMOND_SIZE,
+            COLS.embed,
+            COLS.embedStroke
+          );
+        }
+      }
+
+      function drawRingSpace(ctx) {
+        const w = ctx.canvas.width,
+          h = ctx.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const cx = w / 2,
+          cy = h / 2,
+          radius = Math.min(w, h) * 0.35;
+        const pt = (th) => ({
+          x: cx + radius * Math.cos(th),
+          y: cy + radius * Math.sin(th),
+        });
+
+        ctx.strokeStyle = "#ddd";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.stroke();
+        ctx.fillStyle = "#666";
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        const marks =
+          units === "deg"
+            ? [
+                ["0°", 0],
+                ["90°", Math.PI / 2],
+                ["180°", Math.PI],
+                ["270°", (3 * Math.PI) / 2],
+              ]
+            : [
+                ["0", 0],
+                ["π/2", Math.PI / 2],
+                ["π", Math.PI],
+                ["3π/2", (3 * Math.PI) / 2],
+              ];
+        marks.forEach(([label, angle]) =>
+          ctx.fillText(
+            label,
+            cx + Math.cos(angle) * (radius + 15),
+            cy + Math.sin(angle) * (radius + 15) + 3
+          )
+        );
+
+        angles.forEach((angle, i) => {
+          const p = pt(angle);
+          ctx.fillStyle = POINT_COLORS[i];
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 6, 0, TAU);
+          ctx.fill();
+          if (hoveredPoint === i) {
+            ctx.strokeStyle = POINT_COLORS[i];
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 9, 0, TAU);
+            ctx.stroke();
+          }
+        });
+
+        const cm = circularMean(angles, symmetryK),
+          naive = naiveMean(angles);
+        if (showNaive)
+          drawDiamond(
+            ctx,
+            pt(mod2pi(naive)).x,
+            pt(mod2pi(naive)).y,
+            DIAMOND_SIZE,
+            null,
+            COLS.naive
+          );
+        if (cm.valid)
+          drawDiamond(
+            ctx,
+            pt(cm.angle).x,
+            pt(cm.angle).y,
+            DIAMOND_SIZE,
+            COLS.embed,
+            COLS.embedStroke
+          );
+      }
+
+      function drawVectorSpace(ctx) {
+        const w = ctx.canvas.width,
+          h = ctx.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const cx = w / 2,
+          cy = h / 2,
+          scale = Math.min(w, h) * 0.35;
+        const drawArrow = (x, y, color) => {
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          const angle = Math.atan2(y - cy, x - cx);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(
+            x - 8 * Math.cos(angle - 0.4),
+            y - 8 * Math.sin(angle - 0.4)
+          );
+          ctx.lineTo(
+            x - 8 * Math.cos(angle + 0.4),
+            y - 8 * Math.sin(angle + 0.4)
+          );
+          ctx.closePath();
+          ctx.fill();
+        };
+
+        ctx.strokeStyle = "#ddd";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(w, cy);
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, h);
+        ctx.stroke();
+        ctx.strokeStyle = "#bdc3c7";
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, scale, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        angles.forEach((angle, i) => {
+          const vec = toVector(angle, symmetryK);
+          drawArrow(cx + vec.x * scale, cy + vec.y * scale, POINT_COLORS[i]);
+        });
+
+        const cm = circularMean(angles, symmetryK);
+        if (cm.valid) {
+          const meanX = cx + cm.avgX * scale,
+            meanY = cy + cm.avgY * scale;
+          drawArrow(meanX, meanY, "#34495e");
+        }
+      }
+
+      function updateAll() {
+        drawLinearSpace(contexts.linear);
+        drawRingSpace(contexts.ring);
+        drawVectorSpace(contexts.vector);
+        updateResults();
+        // This is the bridge: it calls the function defined by the 3D script
+        if (window.__updateAtan2Markers) {
+          window.__updateAtan2Markers(angles, symmetryK);
+        }
+      }
+
+      function updateResults() {
+        const naive = naiveMean(angles);
+        const cm = circularMean(angles, symmetryK);
+        document.getElementById("naiveResult").textContent = formatAngle(
+          mod2pi(naive)
+        );
+        if (cm.valid) {
+          document.getElementById("circularResult").textContent = formatAngle(
+            cm.angle
+          );
+          let error = Math.abs(mod2pi(naive) - cm.angle);
+          error = Math.min(error, TAU - error);
+          document.getElementById("errorResult").textContent =
+            formatAngle(error);
+          document.getElementById("zeroMagnitudeWarning").style.display =
+            "none";
+        } else {
+          document.getElementById("circularResult").textContent = "Undefined";
+          document.getElementById("errorResult").textContent = "--";
+          document.getElementById("zeroMagnitudeWarning").style.display =
+            "block";
+        }
+      }
+
+      function getMousePos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+      }
+
+      function findNearestPoint(canvas, mousePos) {
+        const w = canvas.width,
+          h = canvas.height;
+        let check;
+        if (canvas === canvases.linear) {
+          const margin = 40,
+            lineY = h / 2,
+            lineLeft = margin,
+            lineWidth = w - 2 * margin;
+          check = (i) => {
+            const x = lineLeft + (mod2pi(angles[i]) / TAU) * lineWidth;
+            return Math.hypot(mousePos.x - x, mousePos.y - lineY);
+          };
+        } else if (canvas === canvases.ring) {
+          const cx = w / 2,
+            cy = h / 2,
+            r = Math.min(w, h) * 0.35;
+          check = (i) => {
+            const x = cx + Math.cos(angles[i]) * r,
+              y = cy + Math.sin(angles[i]) * r;
+            return Math.hypot(mousePos.x - x, mousePos.y - y);
+          };
+        } else if (canvas === canvases.vector) {
+          const cx = w / 2,
+            cy = h / 2,
+            s = Math.min(w, h) * 0.35;
+          check = (i) => {
+            const vec = toVector(angles[i], symmetryK);
+            const x = cx + vec.x * s,
+              y = cy + vec.y * s;
+            return Math.hypot(mousePos.x - x, mousePos.y - y);
+          };
+        }
+        for (let i = 0; i < angles.length; i++) if (check(i) < 15) return i;
+        return null;
+      }
+
+      function updateAngleFromMouse(canvas, mousePos, pointIndex) {
+        const w = canvas.width,
+          h = canvas.height;
+        let newAngle;
+        if (canvas === canvases.linear) {
+          const margin = 40,
+            lineLeft = margin,
+            lineWidth = w - 2 * margin;
+          newAngle =
+            TAU * Math.max(0, Math.min(1, (mousePos.x - lineLeft) / lineWidth));
+        } else if (canvas === canvases.ring) {
+          newAngle = Math.atan2(mousePos.y - h / 2, mousePos.x - w / 2);
+        } else if (canvas === canvases.vector) {
+          const angle = Math.atan2(mousePos.y - h / 2, mousePos.x - w / 2);
+          newAngle = angle / symmetryK;
+        }
+        angles[pointIndex] = mod2pi(newAngle);
+        updateAll();
+        if (document.getElementById("presetSelect").value === "custom")
+          updateCustomInputs();
+      }
+
+      Object.values(canvases).forEach((canvas) => {
+        canvas.addEventListener("mousedown", (e) => {
+          const point = findNearestPoint(canvas, getMousePos(canvas, e));
+          if (point !== null) {
+            draggingPoint = point;
+            canvas.style.cursor = "grabbing";
+          }
+        });
+        canvas.addEventListener("mousemove", (e) => {
+          const pos = getMousePos(canvas, e);
+          if (draggingPoint !== null) {
+            updateAngleFromMouse(canvas, pos, draggingPoint);
+          } else {
+            const point = findNearestPoint(canvas, pos);
+            hoveredPoint = point;
+            canvas.style.cursor = point !== null ? "grab" : "default";
+            updateAll();
+          }
+        });
+        const stopDrag = () => {
+          draggingPoint = null;
+          canvas.style.cursor = "default";
+        };
+        canvas.addEventListener("mouseup", stopDrag);
+        canvas.addEventListener("mouseleave", stopDrag);
+      });
+
+      document
+        .getElementById("presetSelect")
+        .addEventListener("change", (e) => {
+          const preset = e.target.value;
+          document.getElementById("customAngles").style.display =
+            preset === "custom" ? "block" : "none";
+          angles = (
+            preset === "random" ? presets.random() : presets[preset]
+          ).map((deg) => toRad(deg));
+          if (preset === "custom") updateCustomInputs();
+          updateAll();
+        });
+
+      document.getElementById("unitsSelect").addEventListener("change", (e) => {
+        units = e.target.value;
+        updateAll();
+      });
+      document
+        .getElementById("symmetrySlider")
+        .addEventListener("input", (e) => {
+          symmetryK = parseInt(e.target.value);
+          document.getElementById("symmetryValue").textContent = symmetryK;
+          updateAll();
+        });
+      document.getElementById("showNaive").addEventListener("change", (e) => {
+        showNaive = e.target.checked;
+        updateAll();
+      });
+      document.getElementById("regenerateBtn").addEventListener("click", () => {
+        if (document.getElementById("presetSelect").value === "random") {
+          angles = presets.random().map((deg) => toRad(deg));
+          updateAll();
+        }
+      });
+
+      function updateCustomInputs() {
+        /* Functionality for custom inputs */
+      }
+
+      window.addEventListener("resize", () => {
+        resizeCanvases();
+        updateAll();
+      });
+
+      resizeCanvases();
+      updateAll();
+    </script>
+
+    <script type="module">
+      // --- 3D VISUALIZATION SCRIPT (using THREE.js) ---
+      import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+      let three; // Will hold all Three.js related objects
+
+      // ✨ Camera presets for different views of the 3D model
+      const CAM = {
+        isometric: { pos: [4.2, 4.0, 4.5], look: [0, 0, 0] },
+        alongX: { pos: [7.0, 0.0, 1.5], look: [0, 0, 0] },
+        alongY: { pos: [0.0, 7.0, 1.5], look: [0, 0, 0] },
+        topDown: { pos: [0.0, 0.0, 7.0], look: [0, 0, 0] },
+      };
+
+      function setView(name = "isometric") {
+        const { camera, controls, render } = three;
+        const p = CAM[name] || CAM.isometric;
+        camera.position.set(...p.pos);
+        controls.target.set(...p.look);
+        controls.update();
+        render();
+      }
+
+      // 🚀 Generates the 3D geometry for the atan2 surface
+      function buildAtan2TwoSheets(R = 1.4, N = 100) {
+        const geom = new THREE.PlaneGeometry(2 * R, 2 * R, N - 1, N - 1);
+        const pos = geom.attributes.position;
+        const upperZ = [],
+          lowerZ = [];
+
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i);
+          const y = pos.getY(i);
+          const z = Math.atan2(y, x); // The core function
+
+          // This logic creates two separate surfaces to show the "jump" at the seam
+          upperZ.push(x < 0 && y < 0 ? z + Math.PI * 2 : z);
+          lowerZ.push(x < 0 && y > 0 ? z - Math.PI * 2 : z);
+        }
+
+        const gUpper = geom.clone();
+        gUpper.setAttribute("z", new THREE.Float32BufferAttribute(upperZ, 1));
+        gUpper.computeVertexNormals();
+
+        const gLower = geom.clone();
+        gLower.setAttribute("z", new THREE.Float32BufferAttribute(lowerZ, 1));
+        gLower.computeVertexNormals();
+
+        // This GLSL code displaces the vertices in the Z direction based on our calculated values
+        const shaderModifier = (shader) => {
+          shader.vertexShader = "attribute float z;\n" + shader.vertexShader;
+          shader.vertexShader = shader.vertexShader.replace(
+            "#include <begin_vertex>",
+            "#include <begin_vertex>\ntransformed.z = z;"
+          );
+        };
+
+        // ✨ A more visually appealing color scheme for the surface
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x5b92e5,
+          roughness: 0.8,
+          metalness: 0.1,
+          side: THREE.DoubleSide,
+        });
+        mat.onBeforeCompile = shaderModifier;
+
+        return {
+          upper: new THREE.Mesh(gUpper, mat),
+          lower: new THREE.Mesh(gLower, mat),
+        };
+      }
+
+      // Initializes the entire 3D scene
+      async function initAtan2Surface() {
+        const mount = document.getElementById("atan2Surface3d");
+        if (!mount) return;
+
+        const w = mount.clientWidth,
+          h = mount.clientHeight;
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(w, h);
+        mount.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+
+        // Using OrbitControls to allow the user to rotate the view
+        const controls = new (
+          await import(
+            "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+          )
+        ).OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.5));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        keyLight.position.set(3.5, 5.0, 6.5);
+        scene.add(keyLight);
+
+        const { upper, lower } = buildAtan2TwoSheets();
+        scene.add(upper, lower);
+
+        // This group will hold the points and mean vector, making them easy to clear and update
+        const markers = new THREE.Group();
+        scene.add(markers);
+
+        const render = () => renderer.render(scene, camera);
+        const animate = () => {
+          requestAnimationFrame(animate);
+          controls.update();
+          render();
+        };
+        animate();
+
+        window.addEventListener("resize", () => {
+          const W = mount.clientWidth,
+            H = mount.clientHeight;
+          renderer.setSize(W, H);
+          camera.aspect = W / H;
+          camera.updateProjectionMatrix();
+        });
+
+        three = { mount, renderer, scene, camera, controls, markers, render };
+        setView("isometric"); // Set the initial camera view
+
+        // Build the camera preset buttons
+        const bar = document.getElementById("atan2ViewBtns");
+        if (bar) {
+          Object.keys(CAM).forEach((name) => {
+            const b = document.createElement("button");
+            b.textContent = name;
+            b.onclick = () => setView(name);
+            bar.appendChild(b);
+          });
+        }
+      }
+
+      // 🔄 This function is called by the 2D script whenever the points move
+      function updateAtan2Markers(angles, k = 1) {
+        if (!three) return;
+        const g = three.markers;
+        g.clear(); // Clear old markers
+
+        const dotGeo = new THREE.SphereGeometry(0.06, 20, 14);
+        const colors = ["#9b59b6", "#3498db", "#2ecc71", "#e67e22", "#e74c3c"];
+
+        // Plot each input angle as a point on the surface
+        angles.forEach((angle, i) => {
+          const th = (angle * k) % (Math.PI * 2);
+          const x = Math.cos(th),
+            y = Math.sin(th),
+            z = Math.atan2(y, x);
+          const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(colors[i % colors.length]),
+          });
+          const dot = new THREE.Mesh(dotGeo, mat);
+          dot.position.set(x, y, z);
+          g.add(dot);
+        });
+
+        // Calculate and plot the circular mean
+        let sx = 0,
+          sy = 0;
+        angles.forEach((t) => {
+          sx += Math.cos(k * t);
+          sy += Math.sin(k * t);
+        });
+        sx /= angles.length;
+        sy /= angles.length;
+        const r = Math.hypot(sx, sy);
+
+        if (r > 1e-6) {
+          const mz = Math.atan2(sy, sx);
+          const meanMat = new THREE.MeshStandardMaterial({
+            color: 0x27ae60,
+            emissive: 0x1e8449,
+            roughness: 0.4,
+          });
+          const meanSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 24, 16),
+            meanMat
+          );
+          meanSphere.position.set(sx, sy, mz);
+          g.add(meanSphere);
+
+          // Add an arrow in the XY plane to show the average vector
+          const arrow = new THREE.ArrowHelper(
+            new THREE.Vector3(sx, sy, 0).normalize(),
+            new THREE.Vector3(0, 0, 0),
+            r,
+            0x27ae60,
+            0.15,
+            0.1
+          );
+          g.add(arrow);
+        }
+        three.render();
+      }
+
+      // --- INITIALIZATION ---
+      // Expose the update function to the global scope so the 2D script can call it
+      window.__updateAtan2Markers = updateAtan2Markers;
+
+      // Initialize the 3D scene and trigger the first render with initial data
+      initAtan2Surface().then(() => {
+        if (window.updateAll) {
+          window.updateAll();
+        }
+      });
+    </script>
+  </body>
+</html>

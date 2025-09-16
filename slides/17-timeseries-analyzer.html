@@ -1,0 +1,54 @@
+<div class="slide" style="display:grid; gap:12px;">
+  <h1>📈 Time Series Analyzer</h1>
+  
+  <div class="info-box">
+    <h3>Circular Statistics in Practice</h3>
+    <p>Click anywhere to add angle measurements to your time series. See how circular averaging and derivatives work on real data sequences!</p>
+  </div>
+  
+  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+    <label for="timeseries-operation">Analysis:</label>
+    <select id="timeseries-operation" style="padding:8px; border-radius:6px; background:#2d3748; color:white; border:1px solid #4a5568;">
+      <option value="average">Circular Mean</option>
+      <option value="derivatives">Angular Derivatives</option>
+    </select>
+    <button id="clear-points" style="padding:8px 16px; border-radius:6px; background:#e53e3e; color:white; border:none; cursor:pointer;">Clear Points</button>
+  </div>
+  
+  <div id="timeseries-analyzer-container" style="width: 100%; height: 500px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,.15);"></div>
+  
+  <div class="success-box">
+    <h3>🎯 Interactive Features</h3>
+    <p><strong>Circular Mean:</strong> Yellow vector shows the true average direction (handles wraparound!)</p>
+    <p><strong>Derivatives:</strong> Colored vectors show angular velocity between consecutive points</p>
+    <p><strong>Pro Tip:</strong> Try clicking points that cross the 180°/-180° boundary to see wraparound handling!</p>
+  </div>
+  
+  <div class="code-example">
+    <h3>Circular Statistics Implementation</h3>
+    <pre><code class="language-python"># Circular mean - the RIGHT way to average angles
+def circular_mean(angles):
+    """Compute mean angle using vector averaging"""
+    x = np.mean(np.cos(angles))
+    y = np.mean(np.sin(angles))
+    return np.arctan2(y, x)
+
+# Angular derivatives with proper wraparound
+def angular_derivatives(angle_series):
+    """Compute finite differences handling wraparound"""
+    diffs = np.diff(angle_series)
+    # Handle wraparound: [-π, π] → [-π, π]
+    diffs = (diffs + np.pi) % (2 * np.pi) - np.pi
+    return diffs</code></pre>
+  </div>
+  
+  <div class="warning-box">
+    <h3>🏢 Real-World Applications</h3>
+    <ul>
+      <li><strong>Robotics:</strong> Averaging compass headings from multiple sensors</li>
+      <li><strong>Computer Vision:</strong> Analyzing rotation sequences in video</li>
+      <li><strong>Finance:</strong> Cyclical time series (daily, seasonal patterns)</li>
+      <li><strong>Signal Processing:</strong> Phase analysis in frequency domain</li>
+    </ul>
+  </div>
+</div>

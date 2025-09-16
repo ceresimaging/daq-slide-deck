@@ -1,0 +1,114 @@
+<div class="slide">
+    <h1>The Missing Math Class: Circular Operations</h1>
+    
+    <div class="warning-box">
+        <h3>🤯 What They Never Taught You</h3>
+        <p>Circular quantities are everywhere, but traditional math classes skip the operations entirely! Here's what you can actually <strong>do</strong> once you embed them as vectors:</p>
+    </div>
+    
+    <div class="two-column-equal">
+        <div class="card">
+            <h3>📊 Basic Operations</h3>
+            <div class="operation-list">
+                <div class="op-item">
+                    <strong>Addition:</strong> <code>v₁ + v₂</code><br>
+                    <small>Compose two rotations</small>
+                </div>
+                <div class="op-item">
+                    <strong>Subtraction:</strong> <code>v₁ - v₂</code><br>
+                    <small>Find angular difference</small>
+                </div>
+                <div class="op-item">
+                    <strong>Average:</strong> <code>mean(vectors)</code><br>
+                    <small>Circular mean (always works!)</small>
+                </div>
+                <div class="op-item">
+                    <strong>Interpolation:</strong> <code>slerp(v₁, v₂, t)</code><br>
+                    <small>Smooth rotation between angles</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>🧮 Advanced Operations</h3>
+            <div class="operation-list">
+                <div class="op-item">
+                    <strong>Distance:</strong> <code>shortest_path(θ₁, θ₂)</code><br>
+                    <small>Minimal angular separation</small>
+                </div>
+                <div class="op-item">
+                    <strong>Scaling:</strong> <code>scalar × vector</code><br>
+                    <small>Scale magnitude, preserve direction</small>
+                </div>
+                <div class="op-item">
+                    <strong>Derivatives:</strong> <code>d/dt [cos(ωt), sin(ωt)]</code><br>
+                    <small>Angular velocity vectors</small>
+                </div>
+                <div class="op-item">
+                    <strong>Integration:</strong> <code>∫ ω(t) dt</code><br>
+                    <small>Accumulate rotations over time</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-box">
+        <h3>📈 Circular Statistics (The Really Cool Stuff)</h3>
+        <div class="code-example">
+            <pre><code class="language-python"># Operations that actually work on circular data!
+angles = [350°, 10°, 5°, 355°]  # Wind directions
+vectors = [to_vector(θ) for θ in angles]
+
+# Circular mean (not 180°!)
+mean_vector = np.mean(vectors, axis=0) 
+mean_angle = from_vector(mean_vector)  # ≈ 0°
+
+# Circular standard deviation  
+dispersion = 1 - |mean_vector|  # How "spread out" are they?
+
+# Circular correlation
+correlation = correlate_circular(wind_dir, wave_dir)
+
+# Circular regression (yes, this exists!)
+slope, intercept = circular_regression(time, wave_directions)</code></pre>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h3>🎯 Why This Matters</h3>
+        <div class="three-column">
+            <div>
+                <h4>🌊 Oceanography</h4>
+                <p>Wave directions, current flows</p>
+            </div>
+            <div>
+                <h4>🧭 Navigation</h4>
+                <p>GPS, compass bearings, flight paths</p>
+            </div>
+            <div>
+                <h4>🧬 Biology</h4>
+                <p>Circadian rhythms, animal migration</p>
+            </div>
+            <div>
+                <h4>🎵 Signal Processing</h4>
+                <p>Phase analysis, Fourier transforms</p>
+            </div>
+            <div>
+                <h4>🤖 Robotics</h4>
+                <p>Joint angles, orientation control</p>
+            </div>
+            <div>
+                <h4>📊 Data Science</h4>
+                <p>Seasonal trends, cyclic patterns</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="highlight-box">
+        <h3>💡 The Big Insight</h3>
+        <p><strong>Every operation you know from linear algebra works on circular quantities—you just need to embed them first!</strong> This is why embedding is such a powerful mathematical technique.</p>
+        <div class="formula-showcase">
+            <code>Circular Quantity → Vector → Linear Operation → Vector → Circular Result</code>
+        </div>
+    </div>
+</div>

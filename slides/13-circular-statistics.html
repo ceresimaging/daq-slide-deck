@@ -1,0 +1,145 @@
+<div class="slide">
+    <h1>Circular Statistics: The Hidden Superpower</h1>
+    
+    <div class="warning-box">
+        <h3>🤯 What Statistics Class Never Taught You</h3>
+        <p>Standard statistics breaks horribly on circular data. But vector embedding makes circular statistics <strong>trivially easy</strong>—and incredibly powerful!</p>
+    </div>
+    
+    <div class="two-column-equal">
+        <div class="card">
+            <h3>📊 The Problem with Regular Stats</h3>
+            <div class="code-example">
+                <pre><code class="language-python"># Wind directions (degrees)
+angles = [350, 10, 5, 355]
+
+# Regular mean = DISASTER
+mean = sum(angles) / len(angles)  # = 180°
+# 180° is the OPPOSITE direction! 🤦‍♂️
+
+# Regular standard deviation = MEANINGLESS
+std = numpy.std(angles)  # = 187°
+# Standard deviation larger than the range!</code></pre>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>✨ Vector Statistics = Magic</h3>
+            <div class="code-example">
+                <pre><code class="language-python"># Convert to vectors
+vectors = [angle_to_vector(θ) for θ in angles]
+
+# Circular mean = WORKS!
+mean_vector = np.mean(vectors, axis=0)
+mean_angle = vector_to_angle(mean_vector)  # ≈ 0°
+# Correct direction! 🎯
+
+# Circular standard deviation
+R = |mean_vector|  # Mean vector length
+circular_std = sqrt(-2 * log(R))  # ≈ 22°
+# Sensible measure of spread!</code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h3>🧠 The Key Insight: Mean Vector Length</h3>
+        <div class="two-column">
+            <div class="visual-element">
+                <svg width="300" height="200" viewBox="0 0 300 200">
+                    <!-- Tight cluster -->
+                    <g transform="translate(75, 100)">
+                        <circle r="50" fill="none" stroke="#666" stroke-width="1" opacity="0.3"/>
+                        <!-- Data points clustered tightly -->
+                        <circle cx="45" cy="5" r="4" fill="#4CAF50"/>
+                        <circle cx="47" cy="-3" r="4" fill="#4CAF50"/>
+                        <circle cx="43" cy="3" r="4" fill="#4CAF50"/>
+                        <circle cx="46" cy="0" r="4" fill="#4CAF50"/>
+                        <!-- Strong mean vector -->
+                        <path d="M 0 0 L 40 0" stroke="#FF5722" stroke-width="4" marker-end="url(#arrow)"/>
+                        <text x="0" y="-65" text-anchor="middle" fill="#4CAF50" font-size="12">Tight Cluster</text>
+                        <text x="0" y="75" text-anchor="middle" fill="#FF5722" font-size="11">|R| ≈ 0.95</text>
+                        <text x="0" y="87" text-anchor="middle" fill="#666" font-size="10">Low variance</text>
+                    </g>
+                    
+                    <!-- Spread out data -->
+                    <g transform="translate(225, 100)">
+                        <circle r="50" fill="none" stroke="#666" stroke-width="1" opacity="0.3"/>
+                        <!-- Data points spread out -->
+                        <circle cx="45" cy="5" r="4" fill="#2196F3"/>
+                        <circle cx="-30" cy="35" r="4" fill="#2196F3"/>
+                        <circle cx="-15" cy="-45" r="4" fill="#2196F3"/>
+                        <circle cx="20" cy="-40" r="4" fill="#2196F3"/>
+                        <!-- Weak mean vector -->
+                        <path d="M 0 0 L 8 -5" stroke="#FF5722" stroke-width="4" marker-end="url(#arrow)"/>
+                        <text x="0" y="-65" text-anchor="middle" fill="#2196F3" font-size="12">Spread Out</text>
+                        <text x="0" y="75" text-anchor="middle" fill="#FF5722" font-size="11">|R| ≈ 0.1</text>
+                        <text x="0" y="87" text-anchor="middle" fill="#666" font-size="10">High variance</text>
+                    </g>
+                    
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#FF5722"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+            <div>
+                <h4>💡 The Beautiful Truth</h4>
+                <div class="formula-showcase">
+                    <p><strong>Tight cluster:</strong> Mean vector is long (|R| → 1)</p>
+                    <p><strong>Spread out:</strong> Mean vector is short (|R| → 0)</p>
+                    <p><strong>Uniform circle:</strong> Mean vector ≈ 0</p>
+                </div>
+                <p>The length of the mean vector automatically captures how "concentrated" your circular data is!</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-box">
+        <h3>🔬 Advanced Circular Stats That Actually Work</h3>
+        <div class="code-example">
+            <pre><code class="language-python"># Circular correlation between two angular variables
+def circular_correlation(angles1, angles2):
+    v1 = [angle_to_vector(θ) for θ in angles1]
+    v2 = [angle_to_vector(θ) for θ in angles2]
+    # Standard correlation on the vector components
+    return pearsonr(v1, v2)
+
+# Circular regression (yes, this exists!)
+def circular_regression(x, circular_y):
+    vectors_y = [angle_to_vector(θ) for θ in circular_y]
+    # Regress each component separately
+    cos_model = LinearRegression().fit(x, [v[0] for v in vectors_y])
+    sin_model = LinearRegression().fit(x, [v[1] for v in vectors_y])
+    return cos_model, sin_model
+
+# Watson-Williams test (circular ANOVA)
+# Test if multiple groups have the same mean direction
+def watson_williams_test(group1_angles, group2_angles):
+    # Convert to vectors, compute mean directions, test significance
+    # (This is the circular equivalent of a t-test!)</code></pre>
+        </div>
+    </div>
+    
+    <div class="highlight-box">
+        <h3>🌟 Real-World Applications</h3>
+        <div class="three-column">
+            <div>
+                <h4>🧬 Biology</h4>
+                <p><strong>Animal migration:</strong> Test if birds change direction by season</p>
+                <p><strong>Circadian rhythms:</strong> Correlate activity with time of day</p>
+            </div>
+            <div>
+                <h4>🌊 Earth Sciences</h4>
+                <p><strong>Wind patterns:</strong> Seasonal wind direction changes</p>
+                <p><strong>Ocean currents:</strong> Correlation with tidal cycles</p>
+            </div>
+            <div>
+                <h4>🎵 Signal Processing</h4>
+                <p><strong>Phase analysis:</strong> Correlation between signal phases</p>
+                <p><strong>Circular convolution:</strong> Periodic signal filtering</p>
+            </div>
+        </div>
+    </div>
+</div>

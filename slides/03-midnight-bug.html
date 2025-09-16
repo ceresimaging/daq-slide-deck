@@ -1,0 +1,99 @@
+<div class="slide">
+    <h1>The Midnight Bug</h1>
+    
+    <div class="info-box">
+        <h3>📅 Real Scenario: Event Duration Tracking</h3>
+        <p>Meeting started at <strong>23:45</strong> (11:45 PM)</p>
+        <p>Meeting ended at <strong>00:15</strong> (12:15 AM)</p>
+    </div>
+    
+    <div class="code-comparison">
+        <div class="highlight-box">
+            <h4>❌ What Everyone Tries First</h4>
+            <pre><code>start_time = 23.75  # 23:45 in decimal hours
+end_time = 0.25     # 00:15 in decimal hours
+
+duration = end_time - start_time
+print(f"Duration: {duration} hours")
+# Output: -23.5 hours 🤦</code></pre>
+        </div>
+        
+        <div class="warning-box">
+            <h4>🤔 The Hacky "Fix"</h4>
+            <pre><code>if end_time < start_time:
+    # Must have crossed midnight
+    duration = (24 - start_time) + end_time
+else:
+    duration = end_time - start_time
+    
+# More special cases...
+if crossed_dst:  # Daylight savings
+    duration += 1  # or -1? 😭</code></pre>
+        </div>
+    </div>
+    
+    <div class="clock-visual">
+        <svg width="1200" height="500" viewBox="0 0 800 300">
+            <!-- Linear representation -->
+            <g transform="translate(30, 80)">
+                <text x="150" y="-20" text-anchor="middle" font-size="14" font-weight="bold" fill="#FFC107">Linear View:</text>
+                <line x1="0" y1="20" x2="300" y2="20" stroke="#333" stroke-width="2"/>
+                
+                <!-- Time markers -->
+                <line x1="0" y1="15" x2="0" y2="25" stroke="#333" stroke-width="2"/>
+                <text x="0" y="40" text-anchor="middle" font-size="12" fill="#FFC107">0:00</text>
+                
+                <line x1="150" y1="15" x2="150" y2="25" stroke="#333" stroke-width="2"/>
+                <text x="150" y="40" text-anchor="middle" font-size="12" fill="#FFC107">12:00</text>
+                
+                <line x1="300" y1="15" x2="300" y2="25" stroke="#333" stroke-width="2"/>
+                <text x="300" y="40" text-anchor="middle" font-size="12" fill="#FFC107">24:00</text>
+                
+                <!-- Start time: 23:45 (23.75/24 * 300 = 296.25) -->
+                <circle cx="296" cy="20" r="8" fill="#2196F3"/>
+                <text x="296" y="60" text-anchor="middle" font-size="12" fill="#FFC107">23:45</text>
+                
+                <!-- End time: 00:15 (0.25/24 * 300 = 3.125) -->
+                <circle cx="3" cy="20" r="8" fill="#4CAF50"/>
+                <text x="3" y="60" text-anchor="middle" font-size="12" fill="#FFC107">00:15</text>
+                
+                <!-- Wrong distance -->
+                <path d="M 296 20 L 3 20" stroke="#FF5722" stroke-width="2" stroke-dasharray="5,5" opacity="0.5"/>
+                <text x="150" y="80" text-anchor="middle" fill="#FF5722" font-size="14">Linear: -23.5 hours!</text>
+            </g>
+            
+            <!-- Circular representation -->
+            <g transform="translate(550, 150)">
+                <text x="0" y="-90" text-anchor="middle" font-size="14" font-weight="bold" fill="#FFC107">Circular View:</text>
+                <circle cx="0" cy="0" r="70" fill="none" stroke="#333" stroke-width="2"/>
+                
+                <!-- Clock numbers -->
+                <text x="0" y="-55" text-anchor="middle" font-size="12" fill="#FFC107">12</text>
+                <text x="55" y="5" text-anchor="middle" font-size="12" fill="#FFC107">3</text>
+                <text x="0" y="60" text-anchor="middle" font-size="12" fill="#FFC107">6</text>
+                <text x="-55" y="5" text-anchor="middle" font-size="12" fill="#FFC107">9</text>
+                
+                <!-- Start: 23:45 -->
+                <line x1="0" y1="0" x2="-10" y2="-68" stroke="#2196F3" stroke-width="3"/>
+                <circle cx="-10" cy="-68" r="8" fill="#2196F3"/>
+                
+                <!-- End: 00:15 -->
+                <line x1="0" y1="0" x2="10" y2="-68" stroke="#4CAF50" stroke-width="3"/>
+                <circle cx="10" cy="-68" r="8" fill="#4CAF50"/>
+                
+                <!-- Correct arc -->
+                <path d="M -10 -68 A 70 70 0 0 1 10 -68" fill="none" stroke="#4CAF50" stroke-width="3"/>
+                <text x="0" y="90" text-anchor="middle" fill="#4CAF50" font-size="14" font-weight="bold">
+                    Correct: 30 minutes!
+                </text>
+            </g>
+        </svg>
+    </div>
+    
+    <div class="success-box">
+        <h3>💡 The Key Insight</h3>
+        <p>Time-of-day is a <strong>24-hour ring</strong>, not a line!</p>
+        <p>Linear arithmetic breaks at the wraparound point.</p>
+    </div>
+</div>
+

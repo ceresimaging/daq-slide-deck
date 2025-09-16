@@ -1,0 +1,83 @@
+<div class="slide">
+    <h1>Interactive Demo</h1>
+    
+    <div class="demo-container">
+        <div class="demo-section">
+            <h3>🎮 Try It Yourself: Angle Averaging</h3>
+            
+            <div class="angle-inputs">
+                <label>
+                    Angle 1: <input type="range" id="angle1" min="0" max="359" value="350">
+                    <span id="angle1-display">350°</span>
+                </label>
+                <label>
+                    Angle 2: <input type="range" id="angle2" min="0" max="359" value="10">
+                    <span id="angle2-display">10°</span>
+                </label>
+            </div>
+            
+            <div class="demo-visual">
+                <svg width="400" height="400" viewBox="0 0 400 400" id="demo-svg">
+                    <!-- Circle -->
+                    <circle cx="200" cy="200" r="150" fill="none" stroke="#333" stroke-width="2"/>
+                    
+                    <!-- Compass labels -->
+                    <text x="200" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107">0°</text>
+                    <text x="370" y="205" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107">90°</text>
+                    <text x="200" y="380" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107">180°</text>
+                    <text x="30" y="205" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107">270°</text>
+                    
+                    <!-- Angle 1 line -->
+                    <line id="angle1-line" x1="200" y1="200" x2="200" y2="50" stroke="#2196F3" stroke-width="4"/>
+                    <circle id="angle1-point" cx="200" cy="50" r="8" fill="#2196F3"/>
+                    
+                    <!-- Angle 2 line -->
+                    <line id="angle2-line" x1="200" y1="200" x2="200" y2="50" stroke="#4CAF50" stroke-width="4"/>
+                    <circle id="angle2-point" cx="200" cy="50" r="8" fill="#4CAF50"/>
+                    
+                    <!-- Average (wrong) -->
+                    <line id="avg-wrong-line" x1="200" y1="200" x2="200" y2="350" stroke="#FF5722" stroke-width="3" stroke-dasharray="5,5" opacity="0"/>
+                    <circle id="avg-wrong-point" cx="200" cy="350" r="6" fill="#FF5722" opacity="0"/>
+                    
+                    <!-- Average (correct) -->
+                    <line id="avg-correct-line" x1="200" y1="200" x2="200" y2="50" stroke="#FFC107" stroke-width="4"/>
+                    <circle id="avg-correct-point" cx="200" cy="50" r="8" fill="#FFC107"/>
+                </svg>
+            </div>
+            
+            <div class="demo-results">
+                <div class="result wrong-result">
+                    <h4>❌ Linear Average</h4>
+                    <p id="wrong-result">180°</p>
+                </div>
+                
+                <div class="result correct-result">
+                    <h4>✅ Circular Average</h4>
+                    <p id="correct-result">0°</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="code-section">
+            <h3>The Code Behind It</h3>
+            <pre><code id="demo-code">function circularAverage(a1, a2) {
+    // Convert to radians
+    const theta1 = a1 * Math.PI / 180;
+    const theta2 = a2 * Math.PI / 180;
+    
+    // Embed on unit circle
+    const v1 = [Math.cos(theta1), Math.sin(theta1)];
+    const v2 = [Math.cos(theta2), Math.sin(theta2)];
+    
+    // Average vectors
+    const avgVec = [(v1[0] + v2[0])/2, (v1[1] + v2[1])/2];
+    
+    // Convert back to angle
+    const avgTheta = Math.atan2(avgVec[1], avgVec[0]);
+    return (avgTheta * 180 / Math.PI + 360) % 360;
+}</code></pre>
+        </div>
+    </div>
+</div>
+
+

@@ -1,0 +1,135 @@
+<div class="slide">
+    <h1>When Zero Isn't Special: Arbitrary Wrap Points</h1>
+    
+    <div class="warning-box">
+        <h3>🎯 Real Hardware Doesn't Care About Zero</h3>
+        <p>Many circular quantities in the wild wrap at arbitrary values, not nice round numbers. The math still works—you just need to normalize first!</p>
+    </div>
+    
+    <div class="two-column-equal">
+        <div class="card">
+            <h3>📊 Common Non-Zero Wrap Domains</h3>
+            <div class="example-list">
+                <div class="example-item">
+                    <h4>🧭 Compass: [-180°, +180°)</h4>
+                    <p>Wraps at ±180°, not 0°/360°</p>
+                    <code>bearing ∈ [-180, 180)</code>
+                </div>
+                <div class="example-item">
+                    <h4>🔧 Rotary Encoder: [1000, 5096)</h4>
+                    <p>12-bit encoder with arbitrary offset</p>
+                    <code>counts ∈ [1000, 5096)</code>
+                </div>
+                <div class="example-item">
+                    <h4>📡 Phase: [-π, +π)</h4>
+                    <p>Centered around zero, not starting at it</p>
+                    <code>phase ∈ [-π, π)</code>
+                </div>
+                <div class="example-item">
+                    <h4>🗓️ Fiscal Year: [Apr, Mar]</h4>
+                    <p>Wraps at March/April boundary</p>
+                    <code>month ∈ [4, 3] (mod 12)</code>
+                </div>
+                <div class="example-item">
+                    <h4>🌡️ ADC Values: [512, 3584)</h4>
+                    <p>Sensor with DC offset and limited range</p>
+                    <code>adc ∈ [512, 3584)</code>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>✨ The Universal Transform</h3>
+            <div class="formula-showcase" style="background: rgba(76, 175, 80, 0.1); padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4>For any circular quantity:</h4>
+                <p><code>value ∈ [min, max)</code></p>
+                <p style="margin: 15px 0;">↓</p>
+                <p><strong>1. Normalize to [0, 1):</strong></p>
+                <p><code>t = (value - min) / (max - min)</code></p>
+                <p style="margin: 15px 0;">↓</p>
+                <p><strong>2. Embed on unit circle:</strong></p>
+                <p><code>v = (cos(2πt), sin(2πt))</code></p>
+                <p style="margin: 15px 0;">↓</p>
+                <p><strong>3. Do your math in ℝ²</strong></p>
+                <p style="margin: 15px 0;">↓</p>
+                <p><strong>4. Project back if needed:</strong></p>
+                <p><code>result = min + (max-min) × atan2(v.y, v.x)/(2π)</code></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="success-box">
+        <h3>💻 Code Example: Averaging Compass Bearings</h3>
+        <div class="code-example">
+            <pre><code class="language-python"># PROBLEM: Compass uses [-180°, +180°) not [0°, 360°)
+bearings = [170, 175, -175, -170]  # All pointing roughly south
+
+# WRONG: Simple average
+naive_mean = np.mean(bearings)  # = 0° (North!) 🤦
+
+# RIGHT: Normalize → Embed → Average → Denormalize
+def circular_mean(values, min_val, max_val):
+    # Step 1: Normalize to [0, 1)
+    period = max_val - min_val
+    normalized = [(v - min_val) / period for v in values]
+    
+    # Step 2: Embed on circle
+    vectors = [(np.cos(2*np.pi*t), np.sin(2*np.pi*t)) for t in normalized]
+    
+    # Step 3: Average in vector space
+    mean_vector = np.mean(vectors, axis=0)
+    
+    # Step 4: Project back to original domain
+    angle = np.atan2(mean_vector[1], mean_vector[0])
+    result = min_val + (angle / (2*np.pi)) * period
+    if result < min_val:
+        result += period
+    return result
+
+correct_mean = circular_mean(bearings, -180, 180)  # ≈ 175° South! ✅</code></pre>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h3>🔧 Practical Examples</h3>
+        <div class="three-column">
+            <div>
+                <h4>🎮 Game Development</h4>
+                <div class="code-snippet">
+                    <pre><code># Joystick angle ∈ [-π, π]
+js_angle = atan2(js.y, js.x)
+# Don't compare directly!
+# Normalize first</code></pre>
+                </div>
+            </div>
+            <div>
+                <h4>🤖 Robotics</h4>
+                <div class="code-snippet">
+                    <pre><code># Encoder wraps at 8192
+# but starts at 1000
+actual_pos = 1000 + 
+  (raw - 1000) % 7192</code></pre>
+                </div>
+            </div>
+            <div>
+                <h4>📊 Time Series</h4>
+                <div class="code-snippet">
+                    <pre><code># Fiscal quarters Q2-Q1
+# April = month 0
+fiscal_month = 
+  (cal_month - 4) % 12</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="highlight-box">
+        <h3>🎯 Key Insight</h3>
+        <p style="font-size: 18px; text-align: center; margin: 20px 0;">
+            <strong>The "zero point" is arbitrary!</strong> What matters is the <em>topology</em>—that values wrap around.
+        </p>
+        <p style="text-align: center;">
+            Always normalize to [0, 1) or [0, 2π) before embedding. Your vector math doesn't care where the original wrap point was.
+        </p>
+    </div>
+</div>

@@ -1,0 +1,59 @@
+<div class="slide" style="display:grid; gap:12px;">
+  <h1>🌍 GIS Demo: Longitude Wraparound at the International Date Line</h1>
+  
+  <div class="info-box">
+    <h3>Real-World Problem: Computing Geographic Means</h3>
+    <p>When averaging GPS coordinates near ±180° longitude (International Date Line), linear arithmetic fails spectacularly. A farm field split by the date line appears to span the entire globe!</p>
+  </div>
+  
+  <div id="map" style="height:600px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,.15)"></div>
+  
+  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+    <label><input type="checkbox" id="worldCopy" checked> worldCopyJump (wrap world)</label>
+    <label><input type="checkbox" id="noWrapTiles"> tile noWrap (stop wrapping tiles)</label>
+    <span id="readout" style="opacity:.9; font-family: monospace;">Circular mean: …</span>
+  </div>
+  
+  <div class="success-box">
+    <h3>🎯 Try This: Drag the markers across the International Date Line!</h3>
+    <p><strong>Red marker</strong> = Wrong linear mean | <strong>Green marker</strong> = Correct circular mean</p>
+    <p>Watch how the linear mean jumps to the middle of the Atlantic while the circular mean stays put! This is the classic longitude wraparound bug.</p>
+  </div>
+  
+  <div class="code-example">
+    <h3>Spherical Coordinate Embedding</h3>
+    <pre><code class="language-python"># For full lat/long geometry operations
+def latlon_to_cartesian(lat, lon):
+    """Embed (lat,lon) in R³ for linear operations"""
+    lat_rad = np.radians(lat)
+    lon_rad = np.radians(lon)
+    return np.array([
+        np.cos(lat_rad) * np.cos(lon_rad),  # x
+        np.cos(lat_rad) * np.sin(lon_rad),  # y  
+        np.sin(lat_rad)                     # z
+    ])
+
+# Geographic centroid (works across antimeridian!)
+def geographic_centroid(lat_lon_pairs):
+    cartesian_points = [latlon_to_cartesian(lat, lon) 
+                       for lat, lon in lat_lon_pairs]
+    mean_cartesian = np.mean(cartesian_points, axis=0)
+    mean_cartesian /= np.linalg.norm(mean_cartesian)  # Back to unit sphere
+    
+    # Convert back to lat/lon
+    lat = np.degrees(np.arcsin(mean_cartesian[2]))
+    lon = np.degrees(np.arctan2(mean_cartesian[1], mean_cartesian[0]))
+    return lat, lon</code></pre>
+  </div>
+  
+  <div class="warning-box">
+    <h3>🏢 Company Applications</h3>
+    <ul>
+      <li><strong>Spatial Statistics:</strong> Computing true centroids for service areas</li>
+      <li><strong>Route Optimization:</strong> Distance calculations that work globally</li>
+      <li><strong>Geofencing:</strong> Boundary checks that don't break at meridians</li>
+      <li><strong>Data Quality:</strong> Detecting GPS outliers using proper spherical distance</li>
+    </ul>
+  </div>
+</div>
+

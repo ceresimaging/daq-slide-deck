@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>atan2 3D Surface Visualization</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+}
+
+#container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+#canvas3d {
+  width: 100%;
+  height: 100%;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+}
+
+.control-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group {
+  margin-bottom: 16px;
+}
+
+.control-label {
+  font-size: 12px;
+  color: #718096;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4299e1;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4299e1;
+  cursor: pointer;
+  border: none;
+}
+
+.value-display {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d3748;
+  min-width: 40px;
+  text-align: right;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #3182ce;
+  transform: translateY(-1px);
+}
+
+.btn.active {
+  background: #2c5282;
+}
+
+.info-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  gap: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2d3748;
+  font-size: 13px;
+}
+
+.info-label {
+  color: #718096;
+}
+
+.info-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #2d3748;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.legend-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #fff;
+}
+
+.ceres-logo {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  opacity: 0.8;
+  z-index: 100;
+}
+
+.ceres-logo img {
+  height: 40px;
+  filter: brightness(1.2);
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div id="container">
+  <div id="canvas3d"></div>
+  <div class="loading" id="loading">Loading 3D surface...</div>
+</div>
+
+<div class="controls">
+  <h3 class="control-title">atan2 Surface Explorer</h3>
+  
+  <div class="control-group">
+    <label class="control-label">Angle A (blue)</label>
+    <div class="slider-container">
+      <input type="range" id="angleA" min="0" max="360" value="350" step="1">
+      <span class="value-display" id="angleAValue">350°</span>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <label class="control-label">Angle B (purple)</label>
+    <div class="slider-container">
+      <input type="range" id="angleB" min="0" max="360" value="10" step="1">
+      <span class="value-display" id="angleBValue">10°</span>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <div class="checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="showGrid" checked>
+        <span>Show coordinate grid</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showProjections" checked>
+        <span>Show projections</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showMeans" checked>
+        <span>Show mean calculations</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="autoRotate">
+        <span>Auto rotate</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showSpiral" checked>
+        <span>Show time spiral</span>
+      </label>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <label class="control-label">Spiral Algorithm</label>
+    <div class="btn-group">
+      <button class="btn active" id="spiralVector">Vector</button>
+      <button class="btn" id="spiralLinear">Linear</button>
+      <button class="btn" id="spiralSplit">Split</button>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <label class="control-label">Time Series Pattern</label>
+    <div class="btn-group">
+      <button class="btn active" id="presetSeam">Seam Cross</button>
+      <button class="btn" id="presetCluster">Clusters</button>
+    </div>
+    <div class="btn-group" style="margin-top: 4px;">
+      <button class="btn" id="presetNoise">Noise Walk</button>
+      <button class="btn" id="presetRecord">Record</button>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <label class="control-label">Window Size</label>
+    <div class="slider-container">
+      <input type="range" id="windowSize" min="5" max="50" value="20" step="1">
+      <span class="value-display" id="windowSizeValue">20</span>
+    </div>
+  </div>
+  
+  <div class="btn-group">
+    <button class="btn" id="resetView">Reset View</button>
+    <button class="btn" id="topView">Top View</button>
+  </div>
+</div>
+
+<div class="info-panel">
+  <div class="info-item">
+    <span class="info-label">A:</span>
+    <span class="info-value" id="infoA">350°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">B:</span>
+    <span class="info-value" id="infoB">10°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">Vector Mean:</span>
+    <span class="info-value" id="vectorMean">0°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">Linear Mean:</span>
+    <span class="info-value" id="linearMean">180°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">|R|:</span>
+    <span class="info-value" id="resultantLength">0.94</span>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-title">Visual Guide</div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #4299e1;"></div>
+    <span>Point A & its path</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #9f7aea;"></div>
+    <span>Point B & its path</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #48bb78;"></div>
+    <span>Vector mean (correct)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #f56565;"></div>
+    <span>Linear mean (wrong)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000); width: 40px;"></div>
+    <span>Surface height = angle</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: linear-gradient(to right, rgba(72,187,120,0.3), rgba(72,187,120,1)); width: 40px;"></div>
+    <span>Spiral confidence (alpha)</span>
+  </div>
+</div>
+
+<div class="ceres-logo">
+  <img src="https://ceres.ai/hubfs/CeresAI%20logo%20refresh%20round%202-01%203.png" alt="Ceres AI">
+</div>
+
+<script>
+// State
+const state = {
+  angleA: 350 * Math.PI / 180,
+  angleB: 10 * Math.PI / 180,
+  showGrid: true,
+  showProjections: true,
+  showMeans: true,
+  autoRotate: false,
+  showSpiral: true,
+  spiralMode: 'vector', // 'vector', 'linear', 'split'
+  windowSize: 20,
+  isRecording: false,
+  timeSeriesPreset: 'seam-crossing' // 'seam-crossing', 'cluster-jump', 'noisy-drift', 'recorded'
+};
+
+// Three.js setup
+let scene, camera, renderer, controls;
+let surfaceMesh, gridHelper;
+let pointA, pointB, vectorMean, linearMean;
+let projectionLines = [];
+let pathCurves = [];
+
+// Time series and spiral data
+let timeSeries = [];
+let spiralMeshes = [];
+let timeStep = 0;
+let maxTimeSteps = 200;
+
+// Math utilities
+function wrapAngle(angle) {
+  while (angle > Math.PI) angle -= 2 * Math.PI;
+  while (angle < -Math.PI) angle += 2 * Math.PI;
+  return angle;
+}
+
+function vectorMeanCalc(a, b) {
+  const vx = (Math.cos(a) + Math.cos(b)) / 2;
+  const vy = (Math.sin(a) + Math.sin(b)) / 2;
+  const length = Math.sqrt(vx * vx + vy * vy);
+  
+  if (length < 0.01) {
+    return { angle: null, length: 0 };
+  }
+  
+  return {
+    angle: Math.atan2(vy, vx),
+    length: length
+  };
+}
+
+function linearMeanCalc(a, b) {
+  return (a + b) / 2;
+}
+
+// Time series generation functions
+function generateTimeSeries(preset, length = maxTimeSteps) {
+  const series = [];
+  
+  switch (preset) {
+    case 'seam-crossing':
+      // Constant speed crossing the 0° seam repeatedly
+      for (let i = 0; i < length; i++) {
+        const angle = (i * 0.05) % (2 * Math.PI) - Math.PI;
+        series.push(angle);
+      }
+      break;
+      
+    case 'cluster-jump':
+      // Alternating between two clusters (350° and 10°)
+      for (let i = 0; i < length; i++) {
+        const cluster = Math.floor(i / 10) % 2;
+        const noise = (Math.random() - 0.5) * 0.3;
+        if (cluster === 0) {
+          series.push(350 * Math.PI / 180 + noise);
+        } else {
+          series.push(10 * Math.PI / 180 + noise);
+        }
+      }
+      break;
+      
+    case 'noisy-drift':
+      // Brownian walk on the circle
+      let angle = 0;
+      for (let i = 0; i < length; i++) {
+        angle += (Math.random() - 0.5) * 0.2;
+        series.push(wrapAngle(angle));
+      }
+      break;
+      
+    case 'recorded':
+      // Use recorded data or default to seam-crossing
+      return timeSeries.length > 0 ? timeSeries.slice() : generateTimeSeries('seam-crossing', length);
+  }
+  
+  return series;
+}
+
+// Sliding window algorithms
+function slidingVectorMean(series, windowSize, index) {
+  const start = Math.max(0, index - windowSize + 1);
+  const end = index + 1;
+  const window = series.slice(start, end);
+  
+  if (window.length === 0) return { angle: null, confidence: 0 };
+  
+  let sumCos = 0, sumSin = 0;
+  for (const angle of window) {
+    sumCos += Math.cos(angle);
+    sumSin += Math.sin(angle);
+  }
+  
+  const meanCos = sumCos / window.length;
+  const meanSin = sumSin / window.length;
+  const resultantLength = Math.sqrt(meanCos * meanCos + meanSin * meanSin);
+  
+  return {
+    angle: Math.atan2(meanSin, meanCos),
+    confidence: resultantLength
+  };
+}
+
+function slidingLinearMean(series, windowSize, index) {
+  const start = Math.max(0, index - windowSize + 1);
+  const end = index + 1;
+  const window = series.slice(start, end);
+  
+  if (window.length === 0) return { angle: null, confidence: 0 };
+  
+  // Naive linear mean (wrong for circular data)
+  const sum = window.reduce((acc, angle) => acc + angle, 0);
+  const mean = sum / window.length;
+  
+  // Use vector mean's confidence for comparison
+  const vectorResult = slidingVectorMean(series, windowSize, index);
+  
+  return {
+    angle: mean,
+    confidence: vectorResult.confidence
+  };
+}
+
+// Create the atan2 surface mesh
+function createSurface() {
+  const resolution = 60;
+  const size = 4;
+  const geometry = new THREE.BufferGeometry();
+  
+  const vertices = [];
+  const colors = [];
+  const indices = [];
+  
+  // Generate vertices with color based on height (angle)
+  for (let i = 0; i <= resolution; i++) {
+    for (let j = 0; j <= resolution; j++) {
+      const x = (i / resolution - 0.5) * size;
+      const y = (j / resolution - 0.5) * size;
+      
+      // atan2 gives us the angle, which becomes our z-coordinate
+      const angle = Math.atan2(y, x);
+      const z = angle / Math.PI; // Normalize to [-1, 1] for display
+      
+      vertices.push(x, y, z);
+      
+      // Color based on angle (HSL color wheel)
+      const hue = (angle + Math.PI) / (2 * Math.PI);
+      const color = new THREE.Color();
+      color.setHSL(hue, 0.7, 0.5);
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+  
+  // Generate indices for triangles
+  for (let i = 0; i < resolution; i++) {
+    for (let j = 0; j < resolution; j++) {
+      const a = i * (resolution + 1) + j;
+      const b = a + 1;
+      const c = a + resolution + 1;
+      const d = c + 1;
+      
+      // Skip triangles that would cross the branch cut
+      const x1 = vertices[a * 3];
+      const y1 = vertices[a * 3 + 1];
+      const x2 = vertices[b * 3];
+      const y2 = vertices[b * 3 + 1];
+      const x3 = vertices[c * 3];
+      const y3 = vertices[c * 3 + 1];
+      const x4 = vertices[d * 3];
+      const y4 = vertices[d * 3 + 1];
+      
+      const angle1 = Math.atan2(y1, x1);
+      const angle2 = Math.atan2(y2, x2);
+      const angle3 = Math.atan2(y3, x3);
+      const angle4 = Math.atan2(y4, x4);
+      
+      // Check if any edge crosses the branch cut
+      const maxJump = Math.PI;
+      if (Math.abs(angle2 - angle1) < maxJump &&
+          Math.abs(angle3 - angle1) < maxJump &&
+          Math.abs(angle4 - angle2) < maxJump &&
+          Math.abs(angle4 - angle3) < maxJump) {
+        indices.push(a, c, b);
+        indices.push(b, c, d);
+      }
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  const material = new THREE.MeshPhongMaterial({
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    shininess: 50,
+    opacity: 0.9,
+    transparent: true
+  });
+  
+  return new THREE.Mesh(geometry, material);
+}
+
+// Create point markers
+function createPoint(color) {
+  const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+  const material = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.3 });
+  return new THREE.Mesh(geometry, material);
+}
+
+// Create projection lines
+function createProjectionLine(color) {
+  const geometry = new THREE.BufferGeometry();
+  const material = new THREE.LineBasicMaterial({ color, opacity: 0.6, transparent: true });
+  return new THREE.Line(geometry, material);
+}
+
+// Create path on surface
+function createPath(color) {
+  const material = new THREE.LineBasicMaterial({ color, linewidth: 2, opacity: 0.8, transparent: true });
+  const geometry = new THREE.BufferGeometry();
+  const line = new THREE.Line(geometry, material);
+  return line;
+}
+
+// Create helix spiral for time series
+function createHelix(series, algorithm, windowSize, color) {
+  if (series.length < 2) return null;
+  
+  const points = [];
+  const colors = [];
+  const alphas = [];
+  
+  const timeSpacing = 4.0 / series.length; // Spread over 4 units in Z
+  
+  for (let i = 0; i < series.length; i++) {
+    const angle = series[i];
+    const t = i * timeSpacing - 2; // Center around z=0
+    
+    // Position on helix
+    const x = Math.cos(angle);
+    const y = Math.sin(angle);
+    const z = t;
+    
+    points.push(new THREE.Vector3(x, y, z));
+    
+    // Calculate algorithm output for coloring
+    let algorithmResult;
+    if (algorithm === 'vector') {
+      algorithmResult = slidingVectorMean(series, windowSize, i);
+    } else {
+      algorithmResult = slidingLinearMean(series, windowSize, i);
+    }
+    
+    // Color based on algorithm output
+    if (algorithmResult.angle !== null) {
+      const hue = (algorithmResult.angle + Math.PI) / (2 * Math.PI);
+      const spiralColor = new THREE.Color();
+      spiralColor.setHSL(hue, 0.7, 0.5);
+      colors.push(spiralColor);
+    } else {
+      colors.push(new THREE.Color(0.5, 0.5, 0.5));
+    }
+    
+    alphas.push(algorithmResult.confidence);
+  }
+  
+  // Create tube geometry along the path
+  const curve = new THREE.CatmullRomCurve3(points);
+  const tubeGeometry = new THREE.TubeGeometry(curve, points.length - 1, 0.03, 8, false);
+  
+  // Create vertex colors and alphas
+  const vertexColors = [];
+  const vertexAlphas = [];
+  const positionCount = tubeGeometry.attributes.position.count;
+  
+  for (let i = 0; i < positionCount; i++) {
+    const segmentIndex = Math.floor(i / 8); // 8 vertices per ring
+    const colorIndex = Math.min(segmentIndex, colors.length - 1);
+    const color = colors[colorIndex];
+    const alpha = alphas[colorIndex];
+    
+    vertexColors.push(color.r, color.g, color.b);
+    vertexAlphas.push(alpha);
+  }
+  
+  tubeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(vertexColors, 3));
+  tubeGeometry.setAttribute('alpha', new THREE.Float32BufferAttribute(vertexAlphas, 1));
+  
+  // Custom material with per-vertex alpha
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      opacity: { value: 1.0 }
+    },
+    vertexShader: `
+      attribute float alpha;
+      attribute vec3 color;
+      varying vec3 vColor;
+      varying float vAlpha;
+      
+      void main() {
+        vColor = color;
+        vAlpha = alpha;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float opacity;
+      varying vec3 vColor;
+      varying float vAlpha;
+      
+      void main() {
+        gl_FragColor = vec4(vColor, vAlpha * opacity);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide
+  });
+  
+  return new THREE.Mesh(tubeGeometry, material);
+}
+
+// Update spirals based on current settings
+function updateSpirals() {
+  // Clear existing spirals
+  spiralMeshes.forEach(mesh => scene.remove(mesh));
+  spiralMeshes = [];
+  
+  if (!state.showSpiral) return;
+  
+  // Generate time series
+  const series = generateTimeSeries(state.timeSeriesPreset);
+  
+  // Create spirals based on mode
+  if (state.spiralMode === 'vector') {
+    const spiral = createHelix(series, 'vector', state.windowSize, 0x48bb78);
+    if (spiral) {
+      spiralMeshes.push(spiral);
+      scene.add(spiral);
+    }
+  } else if (state.spiralMode === 'linear') {
+    const spiral = createHelix(series, 'linear', state.windowSize, 0xf56565);
+    if (spiral) {
+      spiralMeshes.push(spiral);
+      scene.add(spiral);
+    }
+  } else if (state.spiralMode === 'split') {
+    const vectorSpiral = createHelix(series, 'vector', state.windowSize, 0x48bb78);
+    const linearSpiral = createHelix(series, 'linear', state.windowSize, 0xf56565);
+    
+    if (vectorSpiral) {
+      // Offset slightly for visibility
+      vectorSpiral.position.x = -0.1;
+      spiralMeshes.push(vectorSpiral);
+      scene.add(vectorSpiral);
+    }
+    
+    if (linearSpiral) {
+      linearSpiral.position.x = 0.1;
+      spiralMeshes.push(linearSpiral);
+      scene.add(linearSpiral);
+    }
+  }
+}
+
+// Update point positions
+function updatePoints() {
+  // Calculate positions on the unit circle
+  const xA = Math.cos(state.angleA);
+  const yA = Math.sin(state.angleA);
+  const zA = state.angleA / Math.PI;
+  
+  const xB = Math.cos(state.angleB);
+  const yB = Math.sin(state.angleB);
+  const zB = state.angleB / Math.PI;
+  
+  // Update point A
+  pointA.position.set(xA, yA, zA);
+  
+  // Update point B
+  pointB.position.set(xB, yB, zB);
+  
+  // Calculate means
+  const vecMean = vectorMeanCalc(state.angleA, state.angleB);
+  const linMean = linearMeanCalc(state.angleA, state.angleB);
+  
+  // Update vector mean
+  let xV, yV, zV; // Declare at function scope
+  if (vecMean.angle !== null) {
+    xV = Math.cos(vecMean.angle) * vecMean.length;
+    yV = Math.sin(vecMean.angle) * vecMean.length;
+    zV = vecMean.angle / Math.PI;
+    vectorMean.position.set(xV, yV, zV);
+    vectorMean.visible = state.showMeans;
+  } else {
+    vectorMean.visible = false;
+  }
+  
+  // Update linear mean (often wrong!)
+  const xL = Math.cos(linMean);
+  const yL = Math.sin(linMean);
+  const zL = linMean / Math.PI;
+  linearMean.position.set(xL, yL, zL);
+  linearMean.visible = state.showMeans;
+  
+  // Update projection lines
+  if (state.showProjections) {
+    // Line from A to surface
+    const lineA = projectionLines[0];
+    const verticesA = new Float32Array([
+      xA, yA, -1,  // Base plane
+      xA, yA, zA   // Surface point
+    ]);
+    lineA.geometry.setAttribute('position', new THREE.BufferAttribute(verticesA, 3));
+    lineA.visible = true;
+    
+    // Line from B to surface
+    const lineB = projectionLines[1];
+    const verticesB = new Float32Array([
+      xB, yB, -1,
+      xB, yB, zB
+    ]);
+    lineB.geometry.setAttribute('position', new THREE.BufferAttribute(verticesB, 3));
+    lineB.visible = true;
+    
+    // Vector mean projection
+    if (vecMean.angle !== null && xV !== undefined) {
+      const lineV = projectionLines[2];
+      const verticesV = new Float32Array([
+        xV, yV, -1,
+        xV, yV, zV
+      ]);
+      lineV.geometry.setAttribute('position', new THREE.BufferAttribute(verticesV, 3));
+      lineV.visible = state.showMeans;
+    } else {
+      projectionLines[2].visible = false;
+    }
+    
+    // Linear mean projection
+    const lineL = projectionLines[3];
+    const verticesL = new Float32Array([
+      xL, yL, -1,
+      xL, yL, zL
+    ]);
+    lineL.geometry.setAttribute('position', new THREE.BufferAttribute(verticesL, 3));
+    lineL.visible = state.showMeans;
+  } else {
+    projectionLines.forEach(line => line.visible = false);
+  }
+  
+  // Update paths on surface
+  updatePaths();
+}
+
+// Update paths showing how points move on the surface
+function updatePaths() {
+  // Path from A to vector mean
+  if (state.showMeans) {
+    const vecMean = vectorMeanCalc(state.angleA, state.angleB);
+    if (vecMean.angle !== null) {
+      const pathPoints = [];
+      const steps = 30;
+      
+      // Interpolate along the shortest arc
+      let startAngle = state.angleA;
+      let endAngle = vecMean.angle;
+      let diff = wrapAngle(endAngle - startAngle);
+      
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const angle = startAngle + diff * t;
+        const x = Math.cos(angle);
+        const y = Math.sin(angle);
+        const z = angle / Math.PI;
+        pathPoints.push(x, y, z);
+      }
+      
+      pathCurves[0].geometry.setAttribute('position', new THREE.Float32BufferAttribute(pathPoints, 3));
+      pathCurves[0].visible = true;
+      
+      // Path from B to vector mean
+      const pathPoints2 = [];
+      startAngle = state.angleB;
+      diff = wrapAngle(endAngle - startAngle);
+      
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const angle = startAngle + diff * t;
+        const x = Math.cos(angle);
+        const y = Math.sin(angle);
+        const z = angle / Math.PI;
+        pathPoints2.push(x, y, z);
+      }
+      
+      pathCurves[1].geometry.setAttribute('position', new THREE.Float32BufferAttribute(pathPoints2, 3));
+      pathCurves[1].visible = true;
+    }
+  } else {
+    pathCurves.forEach(curve => curve.visible = false);
+  }
+}
+
+// Initialize Three.js scene
+function init() {
+  // Scene setup
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0a);
+  scene.fog = new THREE.Fog(0x0a0a0a, 5, 15);
+  
+  // Camera setup
+  camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+  );
+  camera.position.set(4, 3, 5);
+  camera.lookAt(0, 0, 0);
+  
+  // Renderer setup
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  document.getElementById('canvas3d').appendChild(renderer.domElement);
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  directionalLight.position.set(5, 5, 5);
+  scene.add(directionalLight);
+  
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+  directionalLight2.position.set(-5, 5, -5);
+  scene.add(directionalLight2);
+  
+  // Create surface
+  surfaceMesh = createSurface();
+  scene.add(surfaceMesh);
+  
+  // Create coordinate grid
+  gridHelper = new THREE.GridHelper(4, 20, 0x444444, 0x222222);
+  gridHelper.position.y = -1;
+  gridHelper.rotateX(Math.PI / 2);
+  scene.add(gridHelper);
+  
+  // Create points
+  pointA = createPoint(0x4299e1);
+  scene.add(pointA);
+  
+  pointB = createPoint(0x9f7aea);
+  scene.add(pointB);
+  
+  vectorMean = createPoint(0x48bb78);
+  scene.add(vectorMean);
+  
+  linearMean = createPoint(0xf56565);
+  scene.add(linearMean);
+  
+  // Create projection lines
+  projectionLines.push(createProjectionLine(0x4299e1)); // A
+  projectionLines.push(createProjectionLine(0x9f7aea)); // B
+  projectionLines.push(createProjectionLine(0x48bb78)); // Vector mean
+  projectionLines.push(createProjectionLine(0xf56565)); // Linear mean
+  projectionLines.forEach(line => scene.add(line));
+  
+  // Create path curves
+  pathCurves.push(createPath(0x4299e1)); // A to mean
+  pathCurves.push(createPath(0x9f7aea)); // B to mean
+  pathCurves.forEach(curve => scene.add(curve));
+  
+  // Add axes helper
+  const axesHelper = new THREE.AxesHelper(2);
+  axesHelper.position.set(-2, -2, -1);
+  scene.add(axesHelper);
+  
+  // Mouse controls
+  setupMouseControls();
+  
+  // Initial update
+  updatePoints();
+  updateSpirals();
+  
+  // Hide loading
+  document.getElementById('loading').style.display = 'none';
+}
+
+// Setup mouse controls for camera
+function setupMouseControls() {
+  let mouseDown = false;
+  let mouseX = 0;
+  let mouseY = 0;
+  let cameraTheta = Math.PI / 4;
+  let cameraPhi = Math.PI / 3;
+  let cameraRadius = 7;
+  
+  renderer.domElement.addEventListener('mousedown', (e) => {
+    if (e.target === renderer.domElement) {
+      mouseDown = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    }
+  });
+  
+  renderer.domElement.addEventListener('mousemove', (e) => {
+    if (mouseDown) {
+      const deltaX = e.clientX - mouseX;
+      const deltaY = e.clientY - mouseY;
+      
+      cameraTheta -= deltaX * 0.01;
+      cameraPhi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPhi - deltaY * 0.01));
+      
+      updateCameraPosition();
+      
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    }
+  });
+  
+  renderer.domElement.addEventListener('mouseup', () => {
+    mouseDown = false;
+  });
+  
+  renderer.domElement.addEventListener('wheel', (e) => {
+    cameraRadius = Math.max(3, Math.min(15, cameraRadius + e.deltaY * 0.01));
+    updateCameraPosition();
+  });
+  
+  function updateCameraPosition() {
+    camera.position.x = cameraRadius * Math.sin(cameraPhi) * Math.cos(cameraTheta);
+    camera.position.y = cameraRadius * Math.sin(cameraPhi) * Math.sin(cameraTheta);
+    camera.position.z = cameraRadius * Math.cos(cameraPhi);
+    camera.lookAt(0, 0, 0);
+  }
+  
+  // Store camera control functions
+  window.cameraControls = {
+    reset: () => {
+      cameraTheta = Math.PI / 4;
+      cameraPhi = Math.PI / 3;
+      cameraRadius = 7;
+      updateCameraPosition();
+    },
+    topView: () => {
+      cameraTheta = 0;
+      cameraPhi = 0.01;
+      cameraRadius = 6;
+      updateCameraPosition();
+    }
+  };
+}
+
+// Update info panel
+function updateInfo() {
+  const toDeg = (rad) => ((rad * 180 / Math.PI + 360) % 360).toFixed(0);
+  
+  document.getElementById('infoA').textContent = toDeg(state.angleA) + '°';
+  document.getElementById('infoB').textContent = toDeg(state.angleB) + '°';
+  
+  const vecMean = vectorMeanCalc(state.angleA, state.angleB);
+  const linMean = linearMeanCalc(state.angleA, state.angleB);
+  
+  if (vecMean.angle !== null) {
+    document.getElementById('vectorMean').textContent = toDeg(vecMean.angle) + '°';
+  } else {
+    document.getElementById('vectorMean').textContent = 'undefined';
+  }
+  
+  document.getElementById('linearMean').textContent = toDeg(linMean) + '°';
+  document.getElementById('resultantLength').textContent = vecMean.length.toFixed(2);
+}
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  
+  if (state.autoRotate && window.cameraControls) {
+    const time = Date.now() * 0.0005;
+    camera.position.x = Math.cos(time) * 7;
+    camera.position.z = Math.sin(time) * 7;
+    camera.position.y = 4;
+    camera.lookAt(0, 0, 0);
+  }
+  
+  renderer.render(scene, camera);
+}
+
+// Event listeners
+document.getElementById('angleA').addEventListener('input', (e) => {
+  state.angleA = parseFloat(e.target.value) * Math.PI / 180;
+  document.getElementById('angleAValue').textContent = e.target.value + '°';
+  
+  // Record angle if recording mode is active
+  if (state.isRecording) {
+    timeSeries.push(state.angleA);
+    if (timeSeries.length > maxTimeSteps) {
+      timeSeries = timeSeries.slice(-maxTimeSteps); // Keep only recent data
+    }
+    // Update spiral in real-time during recording
+    if (state.timeSeriesPreset === 'recorded') {
+      updateSpirals();
+    }
+  }
+  
+  updatePoints();
+  updateInfo();
+});
+
+document.getElementById('angleB').addEventListener('input', (e) => {
+  state.angleB = parseFloat(e.target.value) * Math.PI / 180;
+  document.getElementById('angleBValue').textContent = e.target.value + '°';
+  
+  // Record angle if recording mode is active (use angleA for consistency)
+  // Only record from A slider to avoid duplication
+  
+  updatePoints();
+  updateInfo();
+});
+
+document.getElementById('showGrid').addEventListener('change', (e) => {
+  gridHelper.visible = e.target.checked;
+});
+
+document.getElementById('showProjections').addEventListener('change', (e) => {
+  state.showProjections = e.target.checked;
+  updatePoints();
+});
+
+document.getElementById('showMeans').addEventListener('change', (e) => {
+  state.showMeans = e.target.checked;
+  updatePoints();
+});
+
+document.getElementById('autoRotate').addEventListener('change', (e) => {
+  state.autoRotate = e.target.checked;
+});
+
+document.getElementById('resetView').addEventListener('click', () => {
+  window.cameraControls.reset();
+});
+
+document.getElementById('topView').addEventListener('click', () => {
+  window.cameraControls.topView();
+});
+
+// Spiral controls
+document.getElementById('showSpiral').addEventListener('change', (e) => {
+  state.showSpiral = e.target.checked;
+  updateSpirals();
+});
+
+document.getElementById('windowSize').addEventListener('input', (e) => {
+  state.windowSize = parseInt(e.target.value);
+  document.getElementById('windowSizeValue').textContent = e.target.value;
+  updateSpirals();
+});
+
+// Spiral algorithm buttons
+function setActiveButton(groupSelector, activeId) {
+  document.querySelectorAll(groupSelector).forEach(btn => btn.classList.remove('active'));
+  document.getElementById(activeId).classList.add('active');
+}
+
+document.getElementById('spiralVector').addEventListener('click', () => {
+  state.spiralMode = 'vector';
+  setActiveButton('#spiralVector, #spiralLinear, #spiralSplit', 'spiralVector');
+  updateSpirals();
+});
+
+document.getElementById('spiralLinear').addEventListener('click', () => {
+  state.spiralMode = 'linear';
+  setActiveButton('#spiralVector, #spiralLinear, #spiralSplit', 'spiralLinear');
+  updateSpirals();
+});
+
+document.getElementById('spiralSplit').addEventListener('click', () => {
+  state.spiralMode = 'split';
+  setActiveButton('#spiralVector, #spiralLinear, #spiralSplit', 'spiralSplit');
+  updateSpirals();
+});
+
+// Time series preset buttons
+document.getElementById('presetSeam').addEventListener('click', () => {
+  state.timeSeriesPreset = 'seam-crossing';
+  setActiveButton('#presetSeam, #presetCluster, #presetNoise, #presetRecord', 'presetSeam');
+  updateSpirals();
+});
+
+document.getElementById('presetCluster').addEventListener('click', () => {
+  state.timeSeriesPreset = 'cluster-jump';
+  setActiveButton('#presetSeam, #presetCluster, #presetNoise, #presetRecord', 'presetCluster');
+  updateSpirals();
+});
+
+document.getElementById('presetNoise').addEventListener('click', () => {
+  state.timeSeriesPreset = 'noisy-drift';
+  setActiveButton('#presetSeam, #presetCluster, #presetNoise, #presetRecord', 'presetNoise');
+  updateSpirals();
+});
+
+document.getElementById('presetRecord').addEventListener('click', () => {
+  state.timeSeriesPreset = 'recorded';
+  state.isRecording = !state.isRecording;
+  if (state.isRecording) {
+    timeSeries = []; // Clear previous recording
+    document.getElementById('presetRecord').textContent = 'Stop Rec';
+    document.getElementById('presetRecord').classList.add('active');
+  } else {
+    document.getElementById('presetRecord').textContent = 'Record';
+    setActiveButton('#presetSeam, #presetCluster, #presetNoise, #presetRecord', 'presetRecord');
+    updateSpirals();
+  }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Initialize everything
+init();
+animate();
+updateInfo();
+</script>
+
+</body>
+</html>

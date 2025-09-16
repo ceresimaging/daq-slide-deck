@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ring → Vector Playground</title>
+    <style>
+        :root {
+          --bg:#0e1116; --panel:#151a21; --text:#e5e7eb; --muted:#a3aab6; --border:#232a33;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 200px 1fr 250px;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .controls {
+            background: var(--panel);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: none;
+            border: 1px solid var(--border);
+            overflow-y: auto;
+        }
+        
+        .controls h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        select, button {
+            width: 100%;
+            padding: 6px;
+            background: #1b222c;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        
+        button:hover {
+            background: #222b36;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-group input {
+            cursor: pointer;
+        }
+        
+        .main-area {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .panels-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .panel {
+            background: var(--panel);
+            color: var(--text);
+            border-radius: 8px;
+            box-shadow: none;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        
+        .panel canvas {
+            border-radius: 8px;
+            cursor: grab;
+        }
+        
+        .panel canvas:active {
+            cursor: grabbing;
+        }
+        
+        .panel-title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            background: rgba(0,0,0,0.25);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .results {
+            background: var(--panel);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: none;
+            border: 1px solid var(--border);
+        }
+        
+        .results h3 {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .result-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #0f141a;
+            border-radius: 4px;
+        }
+        
+        .result-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        
+        .result-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .naive-result {
+            color: #e74c3c;
+        }
+        
+        .circular-result {
+            color: #27ae60;
+        }
+        
+        .error-result {
+            color: #e67e22;
+        }
+        
+        .hint {
+            margin-top: 20px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #34495e;
+            line-height: 1.4;
+        }
+        
+        #customAngles {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        #customAngles div {
+            margin: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #customAngles input {
+            width: 60px;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        #customAngles .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <h3>Controls</h3>
+            
+            <div class="control-group">
+                <label>Dataset</label>
+                <select id="presetSelect">
+                    <option value="midnight">Crossing Midnight</option>
+                    <option value="compass">Compass Cluster</option>
+                    <option value="opposite">Opposite Sides</option>
+                    <option value="random">Uniform Random</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            
+            <div id="customAngles" style="display: none;"></div>
+            
+            <div class="control-group">
+                <label>Units</label>
+                <select id="unitsSelect">
+                    <option value="deg">Degrees</option>
+                    <option value="rad">Radians</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Symmetry k</label>
+                <input type="range" id="symmetrySlider" min="1" max="4" value="1" style="width: 100%;">
+                <span id="symmetryValue">1</span>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showNaive" checked>
+                <label for="showNaive">Show naive average</label>
+            </div>
+            
+            <button id="regenerateBtn">Regenerate</button>
+        </div>
+        
+        <div class="main-area">
+            <div class="panels-row">
+                <div class="panel">
+                    <canvas id="linearCanvas"></canvas>
+                    <div class="panel-title">1. Linear Space</div>
+                </div>
+                <div class="panel">
+                    <canvas id="ringCanvas"></canvas>
+                    <div class="panel-title">2. Ring Space</div>
+                </div>
+            </div>
+            <div class="panels-row">
+                <div class="panel">
+                    <canvas id="vectorCanvas"></canvas>
+                    <div class="panel-title">3. Vector Space</div>
+                </div>
+                <div class="panel">
+                    <div id="atan2Surface3d" style="width:100%;height:calc(100% - 90px);position:relative;border-radius:10px;overflow:hidden;"></div>
+                    <div id="atan2ViewControls" style="margin:8px;background:#0f141a;padding:8px;border-radius:6px;">
+                        <div style="display:grid;grid-template-columns:60px 1fr 50px;gap:8px;align-items:center;margin-bottom:6px;">
+                            <label style="font-size:11px;color:#a3aab6;">Azimuth:</label>
+                            <input type="range" id="azimuthSlider" min="0" max="360" value="135" style="width:100%;">
+                            <span id="azimuthValue" style="font-size:11px;color:#a3aab6;">135°</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:60px 1fr 50px;gap:8px;align-items:center;margin-bottom:6px;">
+                            <label style="font-size:11px;color:#a3aab6;">Elevation:</label>
+                            <input type="range" id="elevationSlider" min="-90" max="90" value="35" style="width:100%;">
+                            <span id="elevationValue" style="font-size:11px;color:#a3aab6;">35°</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:60px 1fr 50px;gap:8px;align-items:center;">
+                            <label style="font-size:11px;color:#a3aab6;">Zoom:</label>
+                            <input type="range" id="zoomSlider" min="4" max="24" value="12" step="0.5" style="width:100%;">
+                            <span id="zoomValue" style="font-size:11px;color:#a3aab6;">12</span>
+                        </div>
+                    </div>
+                    <div class="panel-title">4. Output (atan2)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="results">
+            <h3>Results</h3>
+            
+            <div class="result-item">
+                <div class="result-label">Naive Mean</div>
+                <div class="result-value naive-result" id="naiveResult">--</div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-label">Circular Mean</div>
+                <div class="result-value circular-result" id="circularResult">--</div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-label">Error</div>
+                <div class="result-value error-result" id="errorResult">--</div>
+            </div>
+            
+            <div class="hint">
+                <strong>Key Insight:</strong><br>
+                Do math in vector space, then convert back with atan2. This handles wraparound correctly, unlike naive averaging.
+            </div>
+            
+            <div id="zeroMagnitudeWarning" style="display: none; margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 11px; color: #856404;">
+                <strong>Warning:</strong> Vectors sum to near zero. No well-defined mean direction.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Color constants
+        const POINT_COLORS = ['#9b59b6', '#3498db', '#2ecc71', '#e67e22', '#e74c3c'];
+        const COLS = {
+            embed: '#27ae60',      // circular mean (green)
+            embedStroke: '#1e8449',
+            naive: '#e74c3c',      // naive mean (red)
+            naiveStroke: '#c0392b',
+            branchCut: '#ff6b6b',  // atan2 discontinuity line
+            contourStrong: 'rgba(255,255,255,0.9)',
+            contourWeak: 'rgba(255,255,255,0.35)'
+        };
+        const DIAMOND_SIZE = 8;  // px for panel 1/2
+        const TAU = Math.PI * 2;
+        
+        // State
+        let angles = [350, 355, 5, 10].map(deg => deg * Math.PI / 180); // Store in radians
+        let symmetryK = 1;
+        let showNaive = true;
+        let units = 'deg';
+        let draggingPoint = null;
+        let hoveredPoint = null;
+        
+        // Presets
+        const presets = {
+            midnight: [350, 355, 5, 10],
+            compass: [340, 350, 10, 20],
+            opposite: [45, 50, 225, 230],
+            random: () => Array(4).fill(0).map(() => Math.random() * 360),
+            custom: [0, 90, 180, 270]
+        };
+        
+        // Canvas setup
+        const canvases = {
+            linear: document.getElementById('linearCanvas'),
+            ring: document.getElementById('ringCanvas'),
+            vector: document.getElementById('vectorCanvas')
+        };
+        
+        const contexts = {};
+        for (let key in canvases) {
+            contexts[key] = canvases[key].getContext('2d');
+        }
+        
+        // Utility functions
+        function mod2pi(angle) {
+            return ((angle % TAU) + TAU) % TAU;
+        }
+        
+        function toDeg(rad) {
+            return rad * 180 / Math.PI;
+        }
+        
+        function toRad(deg) {
+            return deg * Math.PI / 180;
+        }
+        
+        function formatAngle(rad) {
+            if (units === 'deg') {
+                return toDeg(rad).toFixed(1) + '°';
+            } else {
+                return rad.toFixed(3) + ' rad';
+            }
+        }
+        
+        function toVector(angle, k = 1) {
+            return {
+                x: Math.cos(k * angle),
+                y: Math.sin(k * angle)
+            };
+        }
+        
+        function fromVector(vec, k = 1) {
+            return mod2pi(Math.atan2(vec.y, vec.x) / k);
+        }
+        
+        // Circular mean function (precise implementation)
+        function circularMean(angles, k = 1) {
+            if (!angles.length) return { valid: false, angle: 0, r: 0 };
+            let sx = 0, sy = 0;
+            for (const t of angles) {
+                sx += Math.cos(k * t);
+                sy += Math.sin(k * t);
+            }
+            const r = Math.hypot(sx, sy) / angles.length;
+            if (r < 1e-6) return { valid: false, angle: 0, r }; // undefined mean
+            const theta = Math.atan2(sy, sx) / k;
+            return { 
+                valid: true, 
+                angle: mod2pi(theta),
+                r: r,
+                avgX: sx / angles.length,
+                avgY: sy / angles.length,
+                sumX: sx,
+                sumY: sy
+            };
+        }
+        
+        // Naive mean function
+        function naiveMean(angles) {
+            if (!angles.length) return 0;
+            return angles.reduce((s, a) => s + a, 0) / angles.length;
+        }
+        
+        // Diamond drawing utility
+        function drawDiamond(ctx, x, y, size, fill, stroke, lineWidth = 2) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x + size, y);
+            ctx.lineTo(x, y + size);
+            ctx.lineTo(x - size, y);
+            ctx.closePath();
+            if (fill) {
+                ctx.fillStyle = fill;
+                ctx.fill();
+            }
+            if (stroke) {
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        
+        // Unwrap helper for atan2 field
+        function unwrapToward(a, b) {
+            let d = b - a;
+            if (d > Math.PI) b -= TAU;
+            if (d < -Math.PI) b += TAU;
+            return b;
+        }
+        
+        // Build unwrapped atan2 field
+        function buildAtan2Field(N = 160, M = 160) {
+            const xs = new Array(N), ys = new Array(M);
+            for (let i = 0; i < N; i++) xs[i] = -1.5 + 3 * i / (N - 1);
+            for (let j = 0; j < M; j++) ys[j] = -1.5 + 3 * j / (M - 1);
+            
+            const th = Array.from({length: M}, () => new Array(N));
+            for (let j = 0; j < M; j++) {
+                for (let i = 0; i < N; i++) {
+                    th[j][i] = Math.atan2(ys[j], xs[i]);
+                }
+            }
+            
+            // Unwrap rows
+            for (let j = 0; j < M; j++) {
+                for (let i = 1; i < N; i++) {
+                    th[j][i] = unwrapToward(th[j][i-1], th[j][i]);
+                }
+            }
+            // Unwrap columns
+            for (let i = 0; i < N; i++) {
+                for (let j = 1; j < M; j++) {
+                    th[j][i] = unwrapToward(th[j-1][i], th[j][i]);
+                }
+            }
+            
+            return { xs, ys, th, N, M };
+        }
+        
+        // Marching squares contour extraction
+        function contours(th, xs, ys, level) {
+            const M = th.length, N = th[0].length, lines = [];
+            const lerp = (a, b, t) => a + (b - a) * t;
+            
+            for (let j = 0; j < M - 1; j++) {
+                for (let i = 0; i < N - 1; i++) {
+                    const z00 = th[j][i],     z10 = th[j][i+1];
+                    const z01 = th[j+1][i],   z11 = th[j+1][i+1];
+                    const x0 = xs[i], x1 = xs[i+1], y0 = ys[j], y1 = ys[j+1];
+                    
+                    function edge(zA, zB, xA, xB, yA, yB) {
+                        const dA = zA - level, dB = zB - level, denom = (dA - dB);
+                        if ((dA > 0 && dB > 0) || (dA < 0 && dB < 0) || denom === 0) return null;
+                        const t = dA / denom;
+                        return { x: lerp(xA, xB, t), y: lerp(yA, yB, t) };
+                    }
+                    
+                    const p0 = edge(z00, z10, x0, x1, y0, y0);
+                    const p1 = edge(z10, z11, x1, x1, y0, y1);
+                    const p2 = edge(z11, z01, x1, x0, y1, y1);
+                    const p3 = edge(z01, z00, x0, x0, y1, y0);
+                    const pts = [p0, p1, p2, p3].filter(Boolean);
+                    if (pts.length === 2) lines.push(pts);
+                }
+            }
+            return lines;
+        }
+        
+        // Resize canvases
+        function resizeCanvases() {
+            // Only resize canvases in panels 1-3 (panel 4 no longer has a canvas)
+            Object.values(canvases).forEach(canvas => {
+                if (canvas) {
+                    const panel = canvas.closest('.panel');
+                    const rect = panel.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                }
+            });
+        }
+        
+        // HSL to RGB conversion
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+        
+        // Drawing functions
+        function drawLinearSpace(ctx) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            
+            const margin = 40;
+            const lineY = h / 2;
+            const lineLeft = margin;
+            const lineRight = w - margin;
+            const lineWidth = lineRight - lineLeft;
+            
+            // Helper function to convert angle to x position
+            const xFromTheta = th => lineLeft + (th / TAU) * lineWidth;
+            
+            // Draw line
+            ctx.strokeStyle = '#5b6470';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(lineLeft, lineY);
+            ctx.lineTo(lineRight, lineY);
+            ctx.stroke();
+            
+            // Draw ticks and labels
+            ctx.fillStyle = '#a3aab6';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            
+            for (let i = 0; i <= 4; i++) {
+                const x = lineLeft + (i / 4) * lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 5);
+                ctx.lineTo(x, lineY + 5);
+                ctx.stroke();
+                
+                const label = units === 'deg' ? (i * 90) + '°' : (i * Math.PI / 2).toFixed(2);
+                ctx.fillText(label, x, lineY + 20);
+            }
+            
+            // Draw seam indicators
+            ctx.strokeStyle = '#e74c3c';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(lineLeft, lineY - 20);
+            ctx.lineTo(lineLeft, lineY + 20);
+            ctx.moveTo(lineRight, lineY - 20);
+            ctx.lineTo(lineRight, lineY + 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw points
+            for (let i = 0; i < angles.length; i++) {
+                const x = xFromTheta(angles[i]);
+                
+                ctx.fillStyle = POINT_COLORS[i];
+                ctx.beginPath();
+                ctx.arc(x, lineY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (hoveredPoint === i) {
+                    ctx.strokeStyle = POINT_COLORS[i];
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, lineY, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+            
+            // Compute means
+            const cm = circularMean(angles, symmetryK);
+            const naive = naiveMean(angles);
+            
+            // Draw naive mean (red hollow diamond)
+            if (showNaive) {
+                const xn = xFromTheta(mod2pi(naive));
+                
+                // Draw spokes from points to naive mean
+                ctx.save();
+                ctx.strokeStyle = 'rgba(231, 76, 60, 0.25)';
+                ctx.lineWidth = 1;
+                for (const a of angles) {
+                    const xp = xFromTheta(a);
+                    ctx.beginPath();
+                    ctx.moveTo(xp, lineY);
+                    ctx.lineTo(xn, lineY - 24);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                
+                // Draw diamond
+                drawDiamond(ctx, xn, lineY - 24, DIAMOND_SIZE, null, COLS.naive, 2);
+                
+                // Label
+                ctx.fillStyle = COLS.naive;
+                ctx.font = '9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('naive', xn, lineY - 38);
+            }
+            
+            // Draw circular mean (green filled diamond)
+            if (cm.valid) {
+                const xc = xFromTheta(cm.angle);
+                
+                // Draw spokes from points to circular mean
+                ctx.save();
+                ctx.strokeStyle = 'rgba(39, 174, 96, 0.25)';
+                ctx.lineWidth = 1;
+                for (const a of angles) {
+                    const xp = xFromTheta(a);
+                    ctx.beginPath();
+                    ctx.moveTo(xp, lineY);
+                    ctx.lineTo(xc, lineY + 24);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                
+                // Draw diamond
+                drawDiamond(ctx, xc, lineY + 24, DIAMOND_SIZE, COLS.embed, COLS.embedStroke, 2);
+            }
+        }
+        
+        function drawRingSpace(ctx) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) * 0.35;
+            
+            // Helper function for angle to point
+            const pt = th => ({ 
+                x: cx + radius * Math.cos(th), 
+                y: cy + radius * Math.sin(th) 
+            });
+            
+            // Draw circle
+            ctx.strokeStyle = '#5b6470';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Draw cardinal marks
+            ctx.fillStyle = '#a3aab6';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            
+            const marks = units === 'deg' 
+                ? [['0°', 0], ['90°', Math.PI/2], ['180°', Math.PI], ['270°', 3*Math.PI/2]]
+                : [['0', 0], ['π/2', Math.PI/2], ['π', Math.PI], ['3π/2', 3*Math.PI/2]];
+            
+            for (let [label, angle] of marks) {
+                const x = cx + Math.cos(angle) * (radius + 15);
+                const y = cy + Math.sin(angle) * (radius + 15);
+                ctx.fillText(label, x, y + 3);
+            }
+            
+            // Draw points
+            for (let i = 0; i < angles.length; i++) {
+                const p = pt(angles[i]);
+                
+                ctx.fillStyle = POINT_COLORS[i];
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (hoveredPoint === i) {
+                    ctx.strokeStyle = POINT_COLORS[i];
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+            
+            // Compute means
+            const cm = circularMean(angles, symmetryK);
+            const naive = naiveMean(angles);
+            
+            // Draw naive mean (red hollow diamond)
+            if (showNaive) {
+                const thn = mod2pi(naive);
+                const p = pt(thn);
+                drawDiamond(ctx, p.x, p.y, DIAMOND_SIZE, null, COLS.naive, 2);
+            }
+            
+            // Draw circular mean (green filled diamond)
+            if (cm.valid) {
+                const p = pt(cm.angle);
+                drawDiamond(ctx, p.x, p.y, DIAMOND_SIZE, COLS.embed, COLS.embedStroke, 2);
+            }
+        }
+        
+        function drawVectorSpace(ctx) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            
+            const cx = w / 2;
+            const cy = h / 2;
+            const scale = Math.min(w, h) * 0.35;
+            
+            // Draw axes
+            ctx.strokeStyle = '#5b6470';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx - scale - 20, cy);
+            ctx.lineTo(cx + scale + 20, cy);
+            ctx.moveTo(cx, cy - scale - 20);
+            ctx.lineTo(cx, cy + scale + 20);
+            ctx.stroke();
+            
+            // Draw unit circle
+            ctx.strokeStyle = '#3a434f';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw individual vectors
+            for (let i = 0; i < angles.length; i++) {
+                const vec = toVector(angles[i], symmetryK);
+                const x = cx + vec.x * scale;
+                const y = cy - vec.y * scale; // Flip y for canvas
+                
+                ctx.strokeStyle = POINT_COLORS[i];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                // Draw arrowhead
+                const angle = Math.atan2(cy - y, x - cx);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - 8 * Math.cos(angle - 0.4), y - 8 * Math.sin(angle - 0.4));
+                ctx.lineTo(x - 8 * Math.cos(angle + 0.4), y - 8 * Math.sin(angle + 0.4));
+                ctx.closePath();
+                ctx.fillStyle = POINT_COLORS[i];
+                ctx.fill();
+                
+                if (hoveredPoint === i) {
+                    ctx.strokeStyle = POINT_COLORS[i];
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw tip-to-tail ghost vectors (1/N scaled)
+            const cm = circularMean(angles, symmetryK);
+            if (cm.valid) {
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                
+                let currentX = cx;
+                let currentY = cy;
+                
+                for (let i = 0; i < angles.length; i++) {
+                    const vec = toVector(angles[i], symmetryK);
+                    const nextX = currentX + (vec.x / angles.length) * scale;
+                    const nextY = currentY - (vec.y / angles.length) * scale;
+                    
+                    ctx.strokeStyle = POINT_COLORS[i];
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    ctx.lineTo(nextX, nextY);
+                    ctx.stroke();
+                    
+                    currentX = nextX;
+                    currentY = nextY;
+                }
+                
+                ctx.restore();
+                
+                // Draw mean vector
+                const meanX = cx + cm.avgX * scale;
+                const meanY = cy - cm.avgY * scale;
+                
+                ctx.strokeStyle = '#34495e';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(meanX, meanY);
+                ctx.stroke();
+                
+                // Draw arrowhead for mean
+                const angle = Math.atan2(cy - meanY, meanX - cx);
+                ctx.beginPath();
+                ctx.moveTo(meanX, meanY);
+                ctx.lineTo(meanX - 10 * Math.cos(angle - 0.4), meanY - 10 * Math.sin(angle - 0.4));
+                ctx.lineTo(meanX - 10 * Math.cos(angle + 0.4), meanY - 10 * Math.sin(angle + 0.4));
+                ctx.closePath();
+                ctx.fillStyle = '#34495e';
+                ctx.fill();
+            }
+            
+            // Draw labels
+            ctx.fillStyle = '#a3aab6';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('x', cx + scale + 25, cy + 3);
+            ctx.textAlign = 'right';
+            ctx.fillText('y', cx - 3, cy - scale - 25);
+        }
+        
+        function drawOutputSpace(ctx) {
+            // This function is no longer needed - 3D surface replaced the 2D output
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+        }
+        
+        // Update all visualizations
+        function updateAll() {
+            drawLinearSpace(contexts.linear);
+            drawRingSpace(contexts.ring);
+            drawVectorSpace(contexts.vector);
+            updateResults();
+            if (window.__updateAtan2Markers) window.__updateAtan2Markers(angles, symmetryK);
+        }
+        
+        // Update results panel
+        function updateResults() {
+            const naive = naiveMean(angles);
+            const cm = circularMean(angles, symmetryK);
+            
+            document.getElementById('naiveResult').textContent = formatAngle(mod2pi(naive));
+            
+            if (cm.valid) {
+                document.getElementById('circularResult').textContent = formatAngle(cm.angle);
+                
+                let error = Math.abs(naive - cm.angle);
+                if (error > Math.PI) error = TAU - error;
+                document.getElementById('errorResult').textContent = formatAngle(error);
+                
+                document.getElementById('zeroMagnitudeWarning').style.display = 'none';
+            } else {
+                document.getElementById('circularResult').textContent = 'Undefined';
+                document.getElementById('errorResult').textContent = '--';
+                document.getElementById('zeroMagnitudeWarning').style.display = 'block';
+            }
+        }
+        
+        // Mouse interaction
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+        
+        function findNearestPoint(canvas, mousePos) {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            if (canvas === canvases.linear) {
+                const margin = 40;
+                const lineY = h / 2;
+                const lineLeft = margin;
+                const lineWidth = w - 2 * margin;
+                
+                for (let i = 0; i < angles.length; i++) {
+                    const x = lineLeft + (angles[i] / TAU) * lineWidth;
+                    const dist = Math.sqrt(Math.pow(mousePos.x - x, 2) + Math.pow(mousePos.y - lineY, 2));
+                    if (dist < 15) return i;
+                }
+            } else if (canvas === canvases.ring) {
+                const cx = w / 2;
+                const cy = h / 2;
+                const radius = Math.min(w, h) * 0.35;
+                
+                for (let i = 0; i < angles.length; i++) {
+                    const x = cx + Math.cos(angles[i]) * radius;
+                    const y = cy + Math.sin(angles[i]) * radius;
+                    const dist = Math.sqrt(Math.pow(mousePos.x - x, 2) + Math.pow(mousePos.y - y, 2));
+                    if (dist < 15) return i;
+                }
+            } else if (canvas === canvases.vector) {
+                const cx = w / 2;
+                const cy = h / 2;
+                const scale = Math.min(w, h) * 0.35;
+                
+                for (let i = 0; i < angles.length; i++) {
+                    const vec = toVector(angles[i], symmetryK);
+                    const x = cx + vec.x * scale;
+                    const y = cy - vec.y * scale;
+                    const dist = Math.sqrt(Math.pow(mousePos.x - x, 2) + Math.pow(mousePos.y - y, 2));
+                    if (dist < 15) return i;
+                }
+            }
+            
+            return null;
+        }
+        
+        function updateAngleFromMouse(canvas, mousePos, pointIndex) {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            if (canvas === canvases.linear) {
+                const margin = 40;
+                const lineLeft = margin;
+                const lineWidth = w - 2 * margin;
+                const t = Math.max(0, Math.min(1, (mousePos.x - lineLeft) / lineWidth));
+                angles[pointIndex] = t * TAU;
+            } else if (canvas === canvases.ring) {
+                const cx = w / 2;
+                const cy = h / 2;
+                angles[pointIndex] = mod2pi(Math.atan2(mousePos.y - cy, mousePos.x - cx));
+            } else if (canvas === canvases.vector) {
+                const cx = w / 2;
+                const cy = h / 2;
+                const dx = mousePos.x - cx;
+                const dy = -(mousePos.y - cy); // Flip y
+                const angle = Math.atan2(dy, dx);
+                angles[pointIndex] = mod2pi(angle / symmetryK);
+            }
+            
+            updateAll();
+            updateCustomInputs();
+        }
+        
+        // Add mouse event listeners to all canvases
+        for (let key in canvases) {
+            const canvas = canvases[key];
+            
+            canvas.addEventListener('mousedown', (e) => {
+                const pos = getMousePos(canvas, e);
+                const point = findNearestPoint(canvas, pos);
+                if (point !== null) {
+                    draggingPoint = point;
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const pos = getMousePos(canvas, e);
+                
+                if (draggingPoint !== null) {
+                    updateAngleFromMouse(canvas, pos, draggingPoint);
+                } else {
+                    const point = findNearestPoint(canvas, pos);
+                    if (point !== hoveredPoint) {
+                        hoveredPoint = point;
+                        updateAll();
+                    }
+                    canvas.style.cursor = point !== null ? 'grab' : 'default';
+                }
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                draggingPoint = null;
+                canvas.style.cursor = hoveredPoint !== null ? 'grab' : 'default';
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                if (hoveredPoint !== null) {
+                    hoveredPoint = null;
+                    updateAll();
+                }
+                draggingPoint = null;
+                canvas.style.cursor = 'default';
+            });
+        }
+        
+        // Control handlers
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const preset = e.target.value;
+            
+            if (preset === 'custom') {
+                document.getElementById('customAngles').style.display = 'block';
+                updateCustomInputs();
+            } else {
+                document.getElementById('customAngles').style.display = 'none';
+                
+                if (preset === 'random') {
+                    angles = presets.random().map(deg => toRad(deg));
+                } else {
+                    angles = presets[preset].map(deg => toRad(deg));
+                }
+                
+                updateAll();
+            }
+        });
+        
+        document.getElementById('unitsSelect').addEventListener('change', (e) => {
+            units = e.target.value;
+            updateAll();
+        });
+        
+        document.getElementById('symmetrySlider').addEventListener('input', (e) => {
+            symmetryK = parseInt(e.target.value);
+            document.getElementById('symmetryValue').textContent = symmetryK;
+            updateAll();
+        });
+        
+        document.getElementById('showNaive').addEventListener('change', (e) => {
+            showNaive = e.target.checked;
+            updateAll();
+        });
+        
+        document.getElementById('regenerateBtn').addEventListener('click', () => {
+            const preset = document.getElementById('presetSelect').value;
+            if (preset === 'random') {
+                angles = presets.random().map(deg => toRad(deg));
+                updateAll();
+            }
+        });
+        
+        // Custom angles input
+        function updateCustomInputs() {
+            const container = document.getElementById('customAngles');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < angles.length; i++) {
+                const div = document.createElement('div');
+                
+                const colorSpan = document.createElement('span');
+                colorSpan.className = 'color-indicator';
+                colorSpan.style.backgroundColor = POINT_COLORS[i];
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = toDeg(angles[i]).toFixed(1);
+                input.min = 0;
+                input.max = 360;
+                input.step = 1;
+                
+                input.addEventListener('input', (e) => {
+                    angles[i] = toRad(parseFloat(e.target.value) || 0);
+                    updateAll();
+                });
+                
+                div.appendChild(colorSpan);
+                div.appendChild(input);
+                div.appendChild(document.createTextNode('°'));
+                container.appendChild(div);
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('resize', () => {
+            resizeCanvases();
+            updateAll();
+        });
+        
+        resizeCanvases();
+        updateAll();
+    </script>
+
+    <script type="module">
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+let three = null;
+
+// ---- Z scale factor to normalize surface height ----
+const ZSCALE = 0.35;  // keeps Z dimension comparable to X/Y
+
+// ---- orbital camera system ----
+let cameraParams = {
+  azimuth: 135,    // degrees around Z-axis (0-360)
+  elevation: 35,   // degrees pitch (-90 to +90)
+  zoom: 12         // distance from origin (increased for better starting view)
+};
+
+function updateCameraFromOrbit() {
+  if (!three) return;
+  
+  // Convert degrees to radians
+  const azimuthRad = (cameraParams.azimuth * Math.PI) / 180;
+  const elevationRad = (cameraParams.elevation * Math.PI) / 180;
+  
+  // Spherical to Cartesian coordinates
+  const x = cameraParams.zoom * Math.cos(elevationRad) * Math.cos(azimuthRad);
+  const y = cameraParams.zoom * Math.cos(elevationRad) * Math.sin(azimuthRad);
+  const z = cameraParams.zoom * Math.sin(elevationRad);
+  
+  // Position camera and point at origin
+  three.camera.position.set(x, y, z);
+  three.camera.lookAt(0, 0, 0);
+  three.render();
+  
+  // Console log current values for manual preset finding
+  console.log(`Camera: azimuth=${cameraParams.azimuth}°, elevation=${cameraParams.elevation}°, zoom=${cameraParams.zoom}`);
+  console.log(`Position: [${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}]`);
+}
+
+// Helper function to convert HSL to RGB (copied from main script)
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+// ---- build two-sheet atan2 surface (shows the step) ----
+function buildAtan2TwoSheets(R=1.4, NX=160, NY=160){
+  const mk = () => ({ pos:new Float32Array(NX*NY*3), col:new Float32Array(NX*NY*3), idx:[] });
+  const up = mk(), lo = mk();
+  const idx = (i,j)=> j*NX + i;
+
+  let k=0;
+  for (let j=0;j<NY;j++){
+    const y = -R + 2*R*j/(NY-1);
+    for (let i=0;i<NX;i++){
+      const x = -R + 2*R*i/(NX-1);
+      const z = Math.atan2(y,x);
+      const hue = (z + Math.PI) / (2*Math.PI);                  // 0..1
+      const [r,g,b] = hslToRgb(hue, 0.55, 0.55);                // use hslToRgb()
+      // upper sheet (+2π in lower-left)
+      const zu = (x<0 && y<0) ? z + 2*Math.PI : z;
+      up.pos.set([x,y,zu * ZSCALE], k*3);  up.col.set([r/255,g/255,b/255], k*3);
+      // lower sheet (−2π in upper-left)
+      const zl = (x<0 && y>0) ? z - 2*Math.PI : z;
+      lo.pos.set([x,y,zl * ZSCALE], k*3);  lo.col.set([r/255,g/255,b/255], k*3);
+      k++;
+    }
+  }
+  // Skip triangles that cross large Z jumps to keep branch cut open
+  const ZJUMP = Math.PI * 1.5 * ZSCALE; // anything > ~π means we're at the step
+
+  function pushCellSafe(mesh, a,b,c,d, pos) {
+    const z = (p) => pos[p*3 + 2];
+    const jumps =
+      Math.abs(z(a)-z(b)) > ZJUMP || Math.abs(z(b)-z(c)) > ZJUMP ||
+      Math.abs(z(c)-z(d)) > ZJUMP || Math.abs(z(d)-z(a)) > ZJUMP;
+
+    if (!jumps) mesh.idx.push(a,b,d, b,c,d);
+  }
+
+  for (let j=0;j<NY-1;j++) for (let i=0;i<NX-1;i++){
+    const a=idx(i,j), b=idx(i+1,j), c=idx(i+1,j+1), d=idx(i,j+1);
+    pushCellSafe(up, a,b,c,d, up.pos);
+    pushCellSafe(lo, a,b,c,d, lo.pos);
+  }
+
+  const mat = new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:0.85, metalness:0.05 });
+  const gU = new THREE.BufferGeometry(); gU.setIndex(up.idx);
+  gU.setAttribute('position', new THREE.BufferAttribute(up.pos,3));
+  gU.setAttribute('color',    new THREE.BufferAttribute(up.col,3));
+  gU.computeVertexNormals();
+
+  const gL = new THREE.BufferGeometry(); gL.setIndex(lo.idx);
+  gL.setAttribute('position', new THREE.BufferAttribute(lo.pos,3));
+  gL.setAttribute('color',    new THREE.BufferAttribute(lo.col,3));
+  gL.computeVertexNormals();
+
+  return { upper:new THREE.Mesh(gU,mat), lower:new THREE.Mesh(gL,mat) };
+}
+
+// ---- init renderer/scene/camera once ----
+function initAtan2Surface(){
+  const mount = document.getElementById('atan2Surface3d');
+  if (!mount) return;
+
+  const w = mount.clientWidth, h = mount.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(devicePixelRatio); renderer.setSize(w,h);
+  mount.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0e1116);
+  const camera = new THREE.PerspectiveCamera(38, w/h, 0.1, 100);
+  
+  // Set camera to Z-up orientation (instead of Three.js default Y-up)
+  camera.up.set(0, 0, 1);
+
+  scene.add(new THREE.HemisphereLight(0xeeeeff, 0x232a33, 0.7));
+  const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(3.5,5.0,6.5); scene.add(key);
+
+  // axes with standard RGB coloring (X=red, Y=green, Z=blue)
+  const xAxisMat = new THREE.LineBasicMaterial({ color:0xff4444 }); // red
+  const yAxisMat = new THREE.LineBasicMaterial({ color:0x44ff44 }); // green  
+  const zAxisMat = new THREE.LineBasicMaterial({ color:0x4444ff }); // blue
+  const xAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-2,0,0), new THREE.Vector3(2,0,0)]), xAxisMat);
+  const yAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-2,0), new THREE.Vector3(0,2,0)]), yAxisMat);
+  const zAxis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-4), new THREE.Vector3(0,0,4)]), zAxisMat);
+  scene.add(xAxis, yAxis, zAxis);
+
+  const {upper, lower} = buildAtan2TwoSheets(1.4, 160, 160);
+  scene.add(upper, lower);
+
+  // Add grid lines over the surface
+  const gridMat = new THREE.LineBasicMaterial({
+    color: 0x222831,        // darker
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false        // draw on top of the surface
+  });
+  const gridSpacing = 0.2; // spacing between grid lines
+  const gridExtent = 1.4;  // how far the grid extends
+  
+  // Create grid lines in X direction
+  for (let y = -gridExtent; y <= gridExtent; y += gridSpacing) {
+    const points = [];
+    for (let x = -gridExtent; x <= gridExtent; x += 0.05) {
+      const z = Math.atan2(y, x);
+      // Apply same two-sheet logic as surface
+      const zAdjusted = (x < 0 && y < 0) ? z + Math.PI * 2 : 
+                       (x < 0 && y > 0) ? z - Math.PI * 2 : z;
+      points.push(new THREE.Vector3(x, y, zAdjusted * ZSCALE));
+    }
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const gridLine = new THREE.Line(lineGeo, gridMat);
+    gridLine.renderOrder = 2;  // ensure lines render after the surface
+    scene.add(gridLine);
+  }
+  
+  // Create grid lines in Y direction
+  for (let x = -gridExtent; x <= gridExtent; x += gridSpacing) {
+    const points = [];
+    for (let y = -gridExtent; y <= gridExtent; y += 0.05) {
+      const z = Math.atan2(y, x);
+      // Apply same two-sheet logic as surface
+      const zAdjusted = (x < 0 && y < 0) ? z + Math.PI * 2 : 
+                       (x < 0 && y > 0) ? z - Math.PI * 2 : z;
+      points.push(new THREE.Vector3(x, y, zAdjusted * ZSCALE));
+    }
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const gridLine = new THREE.Line(lineGeo, gridMat);
+    gridLine.renderOrder = 2;  // ensure lines render after the surface
+    scene.add(gridLine);
+  }
+
+  // dashed branch cut on negative x-axis
+  const dashGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(-1.4,0,0), new THREE.Vector3(0,0,0) ]);
+  const dashMat = new THREE.LineDashedMaterial({ color:0xcc4444, dashSize:0.15, gapSize:0.08 });
+  const dash = new THREE.Line(dashGeo, dashMat); dash.computeLineDistances(); scene.add(dash);
+
+  const markers = new THREE.Group(); scene.add(markers);
+
+  const render = ()=> renderer.render(scene, camera);
+  window.addEventListener('resize', ()=>{
+    const W = mount.clientWidth, H = mount.clientHeight;
+    renderer.setSize(W,H); camera.aspect=W/H; camera.updateProjectionMatrix(); render();
+  });
+
+  three = { mount, renderer, scene, camera, markers, render };
+  
+  // Set up orbital camera controls
+  updateCameraFromOrbit();
+  
+  // Wire up slider event handlers with better error checking
+  setTimeout(() => {
+    const azimuthSlider = document.getElementById('azimuthSlider');
+    const elevationSlider = document.getElementById('elevationSlider');
+    const zoomSlider = document.getElementById('zoomSlider');
+    const azimuthValue = document.getElementById('azimuthValue');
+    const elevationValue = document.getElementById('elevationValue');
+    const zoomValue = document.getElementById('zoomValue');
+    
+    console.log('Setting up camera sliders:', {azimuthSlider, elevationSlider, zoomSlider});
+    
+    if (azimuthSlider && azimuthValue) {
+      azimuthSlider.addEventListener('input', (e) => {
+        cameraParams.azimuth = parseFloat(e.target.value);
+        azimuthValue.textContent = cameraParams.azimuth + '°';
+        updateCameraFromOrbit();
+      });
+    } else {
+      console.error('Azimuth slider or value element not found');
+    }
+    
+    if (elevationSlider && elevationValue) {
+      elevationSlider.addEventListener('input', (e) => {
+        cameraParams.elevation = parseFloat(e.target.value);
+        elevationValue.textContent = cameraParams.elevation + '°';
+        updateCameraFromOrbit();
+      });
+    } else {
+      console.error('Elevation slider or value element not found');
+    }
+    
+    if (zoomSlider && zoomValue) {
+      zoomSlider.addEventListener('input', (e) => {
+        cameraParams.zoom = parseFloat(e.target.value);
+        zoomValue.textContent = cameraParams.zoom.toFixed(1);
+        updateCameraFromOrbit();
+      });
+    } else {
+      console.error('Zoom slider or value element not found');
+    }
+  }, 100); // Small delay to ensure DOM is ready
+}
+
+// ---- plot inputs + mean on the surface ----
+function updateAtan2Markers(angles, k=1){
+  if (!three) return;
+  const g = three.markers; g.clear();
+
+  const dotGeo = new THREE.SphereGeometry(0.05, 20, 14);
+  const pillarMat = new THREE.LineBasicMaterial({ color:0x777777, transparent:true, opacity:0.6 });
+  const colors = ['#9b59b6', '#3498db', '#2ecc71', '#e67e22', '#e74c3c']; // POINT_COLORS
+
+  // inputs
+  for (let i=0;i<angles.length;i++){
+    const th = (angles[i]*k)%(Math.PI*2);
+    const x = Math.cos(th), y = Math.sin(th), z = Math.atan2(y,x) * ZSCALE;
+
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(x,y,0), new THREE.Vector3(x,y,z) ]);
+    g.add(new THREE.Line(lineGeo, pillarMat));
+
+    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(colors[i] || '#666') });
+    const dot = new THREE.Mesh(dotGeo, mat); dot.position.set(x,y,z); g.add(dot);
+  }
+
+  // mean
+  let sx=0, sy=0; for (const t of angles){ sx += Math.cos(k*t); sy += Math.sin(k*t); }
+  sx/=angles.length; sy/=angles.length; const r = Math.hypot(sx,sy);
+  if (r > 1e-6){
+    const mz = Math.atan2(sy,sx) * ZSCALE;
+    const mean = new THREE.Mesh(new THREE.SphereGeometry(0.07, 24, 16),
+      new THREE.MeshStandardMaterial({ color:0x2ecc71, emissive:0x0a3d1f, roughness:0.4 }));
+    mean.position.set(sx,sy,mz); g.add(mean);
+    // XY arrow at Z=0 plane
+    const arr = new THREE.ArrowHelper(new THREE.Vector3(sx,sy,0).normalize(), new THREE.Vector3(0,0,0), r, 0x2ecc71, 0.12, 0.08);
+    g.add(arr);
+  }
+
+  three.render();
+}
+
+// expose for the 2D script to call after it updates
+window.__initAtan2Surface = initAtan2Surface;
+window.__updateAtan2Markers = updateAtan2Markers;
+
+// Initialize immediately and trigger first render
+initAtan2Surface();           // create the 3D scene now
+window.updateAll?.();         // re-render 2D and push markers into 3D
+</script>
+</body>
+</html>

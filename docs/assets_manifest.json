@@ -1,0 +1,26 @@
+{
+  "build_info": {
+    "title": "Stop Fighting Wraparound: Embed Your Rings!",
+    "build_time": "2025-09-16T15:37:59.637217",
+    "total_assets": 2,
+    "webp_quality": 90
+  },
+  "assets": [
+    {
+      "local": "_presentation_project_ceres-tech-logo.webp",
+      "original": "/home/geoff/projects/presentation_project/ceres-tech-logo.png",
+      "type": "image",
+      "used_in_slide": "01-title.html",
+      "size_bytes": 94252,
+      "size_human": "92.0KB"
+    },
+    {
+      "local": "_presentation_project_ceres-tech-logo.webp",
+      "original": "/home/geoff/projects/presentation_project/ceres-tech-logo.png",
+      "type": "image",
+      "used_in_slide": "01-title.html",
+      "size_bytes": 94252,
+      "size_human": "92.0KB"
+    }
+  ]
+}

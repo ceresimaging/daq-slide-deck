@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>atan2 Slicer</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  flex: 1;
+  min-height: 450px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: #718096;
+  margin-bottom: 20px;
+}
+
+canvas {
+  flex: 1;
+  width: 100%;
+  cursor: grab;
+}
+
+canvas.dragging {
+  cursor: grabbing;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-label {
+  font-size: 11px;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.btn {
+  padding: 6px 12px;
+  background: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #3182ce;
+  transform: translateY(-1px);
+}
+
+.btn.active {
+  background: #2c5282;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.info-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2d3748;
+  font-size: 13px;
+}
+
+.info-label {
+  color: #718096;
+}
+
+.info-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #2d3748;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legend-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.legend-color {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.axis-label {
+  position: absolute;
+  font-size: 11px;
+  color: #718096;
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h3 class="card-title">1. Plane + Probe Line</h3>
+    <p class="card-subtitle">Drag line to slice through atan2</p>
+    <canvas id="canvas1"></canvas>
+  </div>
+  
+  <div class="card">
+    <h3 class="card-title">2. 1D Slice: f(t) = atan2(y(t), x(t))</h3>
+    <p class="card-subtitle">See the branch cut explicitly</p>
+    <canvas id="canvas2"></canvas>
+    <span class="axis-label" style="bottom: 25px; right: 25px;">t →</span>
+    <span class="axis-label" style="top: 50%; left: 10px; transform: rotate(-90deg) translateX(-50%);">angle →</span>
+  </div>
+  
+  <div class="card">
+    <h3 class="card-title">3. Ring Outcome</h3>
+    <p class="card-subtitle">Where the means land</p>
+    <canvas id="canvas3"></canvas>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="control-group">
+    <span class="control-label">Slice Presets</span>
+    <div class="btn-group">
+      <button class="btn" id="sliceHorizontal">Horizontal</button>
+      <button class="btn" id="sliceVertical">Vertical</button>
+      <button class="btn" id="sliceDiagonal">Diagonal</button>
+      <button class="btn" id="sliceThrough">Through A&B</button>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <label class="checkbox-label">
+      <input type="checkbox" id="unwrapToggle">
+      <span>Unwrap (show continuous)</span>
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" id="showSeam" checked>
+      <span>Highlight branch cut</span>
+    </label>
+  </div>
+</div>
+
+<div class="info-panel">
+  <div class="info-item">
+    <span class="info-label">A:</span>
+    <span class="info-value" id="angleA">350°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">B:</span>
+    <span class="info-value" id="angleB">10°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">t(A):</span>
+    <span class="info-value" id="tA">0.97</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">t(B):</span>
+    <span class="info-value" id="tB">0.03</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">Vector μ:</span>
+    <span class="info-value" id="vectorMean">0°</span>
+  </div>
+  <div class="info-item">
+    <span class="info-label">Linear μ:</span>
+    <span class="info-value" id="linearMean">180°</span>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-title">Visual Guide</div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #4299e1; width: 12px; height: 12px; border-radius: 50%;"></div>
+    <span>Point A</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #9f7aea; width: 12px; height: 12px; border-radius: 50%;"></div>
+    <span>Point B</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #48bb78;"></div>
+    <span>Vector mean (correct)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #f56565;"></div>
+    <span>Linear mean (wrong)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #ed8936; width: 16px; height: 2px; border-style: dashed;"></div>
+    <span>Probe line</span>
+  </div>
+</div>
+
+<script>
+// State
+const state = {
+  angleA: Math.PI * 1.94,  // 350°
+  angleB: Math.PI * 0.056, // 10°
+  line: {
+    p0: { x: 0, y: 0 },
+    u: { x: 1, y: 0 }  // Direction vector
+  },
+  unwrap: false,
+  showSeam: true,
+  dragging: null,
+  dragType: null  // 'line', 'angleA', 'angleB'
+};
+
+// Canvases
+const canvas1 = document.getElementById('canvas1');
+const canvas2 = document.getElementById('canvas2');
+const canvas3 = document.getElementById('canvas3');
+const ctx1 = canvas1.getContext('2d');
+const ctx2 = canvas2.getContext('2d');
+const ctx3 = canvas3.getContext('2d');
+
+// Math utilities
+function wrapAngle(angle) {
+  while (angle > Math.PI) angle -= 2 * Math.PI;
+  while (angle < -Math.PI) angle += 2 * Math.PI;
+  return angle;
+}
+
+function vectorMean(a, b) {
+  const vx = (Math.cos(a) + Math.cos(b)) / 2;
+  const vy = (Math.sin(a) + Math.sin(b)) / 2;
+  const length = Math.sqrt(vx * vx + vy * vy);
+  
+  if (length < 0.01) {
+    return { angle: null, length: 0 };
+  }
+  
+  return {
+    angle: Math.atan2(vy, vx),
+    length: length
+  };
+}
+
+function linearMean(a, b) {
+  return (a + b) / 2;
+}
+
+// Project point onto line
+function projectPointToLine(point, line) {
+  const dx = point.x - line.p0.x;
+  const dy = point.y - line.p0.y;
+  const t = (dx * line.u.x + dy * line.u.y) / (line.u.x * line.u.x + line.u.y * line.u.y);
+  return t;
+}
+
+// Get point on line at parameter t
+function getPointOnLine(t, line) {
+  return {
+    x: line.p0.x + t * line.u.x,
+    y: line.p0.y + t * line.u.y
+  };
+}
+
+// Draw plane with probe line (Card 1)
+function drawPlane() {
+  const width = canvas1.width;
+  const height = canvas1.height;
+  const cx = width / 2;
+  const cy = height / 2;
+  const scale = Math.min(width, height) * 0.4;
+  
+  ctx1.clearRect(0, 0, width, height);
+  
+  // Draw coordinate axes
+  ctx1.strokeStyle = '#cbd5e0';
+  ctx1.lineWidth = 1;
+  ctx1.setLineDash([2, 4]);
+  
+  ctx1.beginPath();
+  ctx1.moveTo(0, cy);
+  ctx1.lineTo(width, cy);
+  ctx1.stroke();
+  
+  ctx1.beginPath();
+  ctx1.moveTo(cx, 0);
+  ctx1.lineTo(cx, height);
+  ctx1.stroke();
+  
+  ctx1.setLineDash([]);
+  
+  // Draw light isogons (no overwhelming color)
+  ctx1.strokeStyle = 'rgba(203, 213, 224, 0.3)';
+  ctx1.lineWidth = 0.5;
+  for (let deg = 0; deg < 360; deg += 15) {
+    const angle = deg * Math.PI / 180;
+    ctx1.beginPath();
+    ctx1.moveTo(cx, cy);
+    ctx1.lineTo(cx + Math.cos(angle) * scale * 1.5, cy + Math.sin(angle) * scale * 1.5);
+    ctx1.stroke();
+  }
+  
+  // Draw unit circle
+  ctx1.strokeStyle = '#cbd5e0';
+  ctx1.lineWidth = 2;
+  ctx1.beginPath();
+  ctx1.arc(cx, cy, scale, 0, Math.PI * 2);
+  ctx1.stroke();
+  
+  // Draw probe line
+  ctx1.strokeStyle = '#ed8936';
+  ctx1.lineWidth = 2;
+  ctx1.setLineDash([5, 5]);
+  
+  const lineStart = getPointOnLine(-2, state.line);
+  const lineEnd = getPointOnLine(2, state.line);
+  
+  ctx1.beginPath();
+  ctx1.moveTo(cx + lineStart.x * scale, cy + lineStart.y * scale);
+  ctx1.lineTo(cx + lineEnd.x * scale, cy + lineEnd.y * scale);
+  ctx1.stroke();
+  ctx1.setLineDash([]);
+  
+  // Draw points A and B
+  const drawPoint = (angle, color, label) => {
+    const x = Math.cos(angle);
+    const y = Math.sin(angle);
+    const px = cx + x * scale;
+    const py = cy + y * scale;
+    
+    // Draw projection onto line
+    const t = projectPointToLine({ x, y }, state.line);
+    const proj = getPointOnLine(t, state.line);
+    
+    ctx1.strokeStyle = color + '40';
+    ctx1.lineWidth = 1;
+    ctx1.setLineDash([2, 2]);
+    ctx1.beginPath();
+    ctx1.moveTo(px, py);
+    ctx1.lineTo(cx + proj.x * scale, cy + proj.y * scale);
+    ctx1.stroke();
+    ctx1.setLineDash([]);
+    
+    // Draw projection marker
+    ctx1.fillStyle = color;
+    ctx1.beginPath();
+    ctx1.arc(cx + proj.x * scale, cy + proj.y * scale, 4, 0, Math.PI * 2);
+    ctx1.fill();
+    
+    // Draw point
+    ctx1.fillStyle = color;
+    ctx1.beginPath();
+    ctx1.arc(px, py, 8, 0, Math.PI * 2);
+    ctx1.fill();
+    
+    ctx1.fillStyle = 'white';
+    ctx1.font = 'bold 12px sans-serif';
+    ctx1.textAlign = 'center';
+    ctx1.textBaseline = 'middle';
+    ctx1.fillText(label, px, py);
+    
+    return t;
+  };
+  
+  const tA = drawPoint(state.angleA, '#4299e1', 'A');
+  const tB = drawPoint(state.angleB, '#9f7aea', 'B');
+  
+  // Update global state with t values
+  state.tA = tA;
+  state.tB = tB;
+}
+
+// Draw 1D slice graph (Card 2)
+function draw1DSlice() {
+  const width = canvas2.width;
+  const height = canvas2.height;
+  const margin = 40;
+  const graphWidth = width - 2 * margin;
+  const graphHeight = height - 2 * margin;
+  
+  ctx2.clearRect(0, 0, width, height);
+  
+  // Draw axes
+  ctx2.strokeStyle = '#cbd5e0';
+  ctx2.lineWidth = 2;
+  
+  // X-axis
+  ctx2.beginPath();
+  ctx2.moveTo(margin, height - margin);
+  ctx2.lineTo(width - margin, height - margin);
+  ctx2.stroke();
+  
+  // Y-axis
+  ctx2.beginPath();
+  ctx2.moveTo(margin, margin);
+  ctx2.lineTo(margin, height - margin);
+  ctx2.stroke();
+  
+  // Draw grid
+  ctx2.strokeStyle = 'rgba(203, 213, 224, 0.2)';
+  ctx2.lineWidth = 0.5;
+  
+  // Horizontal grid lines at π/2 intervals
+  for (let i = -2; i <= 2; i++) {
+    const y = height - margin - (i + Math.PI) * graphHeight / (2 * Math.PI);
+    ctx2.beginPath();
+    ctx2.moveTo(margin, y);
+    ctx2.lineTo(width - margin, y);
+    ctx2.stroke();
+    
+    // Labels
+    ctx2.fillStyle = '#718096';
+    ctx2.font = '10px sans-serif';
+    ctx2.textAlign = 'right';
+    ctx2.textBaseline = 'middle';
+    const label = i === 0 ? '0' : i === 1 ? 'π/2' : i === -1 ? '-π/2' : i === 2 ? 'π' : '-π';
+    ctx2.fillText(label, margin - 5, y);
+  }
+  
+  // Sample the function along the line
+  const samples = 200;
+  const tMin = -2;
+  const tMax = 2;
+  const points = [];
+  
+  for (let i = 0; i < samples; i++) {
+    const t = tMin + (tMax - tMin) * i / (samples - 1);
+    const point = getPointOnLine(t, state.line);
+    let angle = Math.atan2(point.y, point.x);
+    
+    if (state.unwrap && i > 0) {
+      // Unwrap by checking for jumps
+      const prevAngle = points[i - 1].angle;
+      if (angle - prevAngle > Math.PI) {
+        angle -= 2 * Math.PI;
+      } else if (angle - prevAngle < -Math.PI) {
+        angle += 2 * Math.PI;
+      }
+    }
+    
+    points.push({ t, angle });
+  }
+  
+  // Draw the function curve
+  ctx2.strokeStyle = '#2d3748';
+  ctx2.lineWidth = 2;
+  ctx2.beginPath();
+  
+  let hasJump = false;
+  for (let i = 0; i < points.length; i++) {
+    const x = margin + (points[i].t - tMin) * graphWidth / (tMax - tMin);
+    const y = height - margin - (points[i].angle + Math.PI) * graphHeight / (2 * Math.PI);
+    
+    if (i === 0) {
+      ctx2.moveTo(x, y);
+    } else {
+      // Check for branch cut jump
+      if (!state.unwrap && Math.abs(points[i].angle - points[i - 1].angle) > Math.PI) {
+        hasJump = true;
+        // Draw branch cut indicator
+        if (state.showSeam) {
+          ctx2.strokeStyle = '#f56565';
+          ctx2.lineWidth = 1;
+          ctx2.setLineDash([2, 2]);
+          ctx2.beginPath();
+          ctx2.moveTo(x, margin);
+          ctx2.lineTo(x, height - margin);
+          ctx2.stroke();
+          ctx2.setLineDash([]);
+          ctx2.strokeStyle = '#2d3748';
+          ctx2.lineWidth = 2;
+        }
+        ctx2.moveTo(x, y);
+      } else {
+        ctx2.lineTo(x, y);
+      }
+    }
+  }
+  ctx2.stroke();
+  
+  // Mark t(A) and t(B)
+  const drawMarker = (t, angle, color, label) => {
+    const x = margin + (t - tMin) * graphWidth / (tMax - tMin);
+    const y = height - margin - (angle + Math.PI) * graphHeight / (2 * Math.PI);
+    
+    // Vertical line
+    ctx2.strokeStyle = color + '40';
+    ctx2.lineWidth = 1;
+    ctx2.setLineDash([2, 2]);
+    ctx2.beginPath();
+    ctx2.moveTo(x, margin);
+    ctx2.lineTo(x, height - margin);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+    
+    // Point on curve
+    ctx2.fillStyle = color;
+    ctx2.beginPath();
+    ctx2.arc(x, y, 6, 0, Math.PI * 2);
+    ctx2.fill();
+    
+    // Label
+    ctx2.fillStyle = color;
+    ctx2.font = 'bold 11px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'bottom';
+    ctx2.fillText(label, x, height - margin + 15);
+  };
+  
+  drawMarker(state.tA, state.angleA, '#4299e1', 't(A)');
+  drawMarker(state.tB, state.angleB, '#9f7aea', 't(B)');
+  
+  // Show means on y-axis
+  const vecMean = vectorMean(state.angleA, state.angleB);
+  const linMean = linearMean(state.angleA, state.angleB);
+  
+  // Linear mean (at midpoint of t)
+  const tMidpoint = (state.tA + state.tB) / 2;
+  const midPoint = getPointOnLine(tMidpoint, state.line);
+  const midAngle = Math.atan2(midPoint.y, midPoint.x);
+  
+  ctx2.strokeStyle = '#f56565';
+  ctx2.lineWidth = 2;
+  ctx2.setLineDash([3, 3]);
+  const linY = height - margin - (linMean + Math.PI) * graphHeight / (2 * Math.PI);
+  ctx2.beginPath();
+  ctx2.moveTo(margin - 10, linY);
+  ctx2.lineTo(width - margin, linY);
+  ctx2.stroke();
+  ctx2.setLineDash([]);
+  
+  // Vector mean
+  if (vecMean.angle !== null) {
+    ctx2.strokeStyle = '#48bb78';
+    ctx2.lineWidth = 2;
+    ctx2.setLineDash([3, 3]);
+    const vecY = height - margin - (vecMean.angle + Math.PI) * graphHeight / (2 * Math.PI);
+    ctx2.beginPath();
+    ctx2.moveTo(margin - 10, vecY);
+    ctx2.lineTo(width - margin, vecY);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+  
+  // Warning if near branch cut
+  if (hasJump && !state.unwrap) {
+    ctx2.fillStyle = '#f56565';
+    ctx2.font = 'bold 12px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText('⚠ Branch cut crossed!', width / 2, 20);
+  }
+}
+
+// Draw ring outcome (Card 3)
+function drawRing() {
+  const width = canvas3.width;
+  const height = canvas3.height;
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(cx, cy) * 0.7;
+  
+  ctx3.clearRect(0, 0, width, height);
+  
+  // Draw ring
+  ctx3.strokeStyle = '#cbd5e0';
+  ctx3.lineWidth = 2;
+  ctx3.beginPath();
+  ctx3.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx3.stroke();
+  
+  // Draw graduations
+  for (let i = 0; i < 24; i++) {
+    const angle = (i * Math.PI * 2) / 24;
+    const inner = radius - 5;
+    const outer = radius + (i % 3 === 0 ? 8 : 4);
+    
+    ctx3.strokeStyle = '#cbd5e0';
+    ctx3.lineWidth = i % 3 === 0 ? 2 : 1;
+    ctx3.beginPath();
+    ctx3.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+    ctx3.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+    ctx3.stroke();
+  }
+  
+  // Highlight branch cut at -π/π
+  if (state.showSeam) {
+    ctx3.strokeStyle = 'rgba(245, 101, 101, 0.3)';
+    ctx3.lineWidth = 4;
+    ctx3.beginPath();
+    ctx3.moveTo(cx - radius * 1.2, cy);
+    ctx3.lineTo(cx - radius * 0.8, cy);
+    ctx3.stroke();
+    
+    ctx3.fillStyle = '#f56565';
+    ctx3.font = '10px sans-serif';
+    ctx3.textAlign = 'center';
+    ctx3.fillText('seam', cx - radius * 1.35, cy);
+  }
+  
+  // Draw shortest arc
+  let startAngle = state.angleA;
+  let endAngle = state.angleB;
+  let diff = wrapAngle(endAngle - startAngle);
+  
+  ctx3.strokeStyle = 'rgba(156, 163, 175, 0.2)';
+  ctx3.lineWidth = radius * 0.1;
+  ctx3.lineCap = 'round';
+  ctx3.beginPath();
+  if (diff > 0) {
+    ctx3.arc(cx, cy, radius, startAngle, endAngle);
+  } else {
+    ctx3.arc(cx, cy, radius, endAngle, startAngle);
+  }
+  ctx3.stroke();
+  
+  // Draw points A and B
+  const drawPoint = (angle, color, label) => {
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    
+    ctx3.fillStyle = color;
+    ctx3.beginPath();
+    ctx3.arc(x, y, 8, 0, Math.PI * 2);
+    ctx3.fill();
+    
+    ctx3.fillStyle = 'white';
+    ctx3.font = 'bold 12px sans-serif';
+    ctx3.textAlign = 'center';
+    ctx3.textBaseline = 'middle';
+    ctx3.fillText(label, x, y);
+  };
+  
+  drawPoint(state.angleA, '#4299e1', 'A');
+  drawPoint(state.angleB, '#9f7aea', 'B');
+  
+  // Draw means
+  const vecMean = vectorMean(state.angleA, state.angleB);
+  const linMean = linearMean(state.angleA, state.angleB);
+  
+  // Vector mean
+  if (vecMean.angle !== null) {
+    const x = cx + Math.cos(vecMean.angle) * radius;
+    const y = cy + Math.sin(vecMean.angle) * radius;
+    
+    // Pulse effect to show connection to graph
+    ctx3.fillStyle = 'rgba(72, 187, 120, 0.2)';
+    ctx3.beginPath();
+    ctx3.arc(x, y, 20, 0, Math.PI * 2);
+    ctx3.fill();
+    
+    ctx3.fillStyle = '#48bb78';
+    ctx3.beginPath();
+    ctx3.arc(x, y, 8, 0, Math.PI * 2);
+    ctx3.fill();
+    
+    ctx3.fillStyle = 'white';
+    ctx3.font = 'bold 10px sans-serif';
+    ctx3.textAlign = 'center';
+    ctx3.textBaseline = 'middle';
+    ctx3.fillText('μᵥ', x, y);
+  }
+  
+  // Linear mean (often wrong!)
+  const linX = cx + Math.cos(linMean) * radius;
+  const linY = cy + Math.sin(linMean) * radius;
+  
+  ctx3.fillStyle = 'rgba(245, 101, 101, 0.2)';
+  ctx3.beginPath();
+  ctx3.arc(linX, linY, 20, 0, Math.PI * 2);
+  ctx3.fill();
+  
+  ctx3.fillStyle = '#f56565';
+  ctx3.beginPath();
+  ctx3.arc(linX, linY, 8, 0, Math.PI * 2);
+  ctx3.fill();
+  
+  ctx3.fillStyle = 'white';
+  ctx3.font = 'bold 10px sans-serif';
+  ctx3.textAlign = 'center';
+  ctx3.textBaseline = 'middle';
+  ctx3.fillText('μₗ', linX, linY);
+  
+  // Show error arc if means differ significantly
+  if (vecMean.angle !== null && Math.abs(wrapAngle(vecMean.angle - linMean)) > 0.3) {
+    ctx3.strokeStyle = 'rgba(245, 101, 101, 0.3)';
+    ctx3.lineWidth = 2;
+    ctx3.setLineDash([4, 4]);
+    ctx3.beginPath();
+    ctx3.arc(cx, cy, radius * 0.85, Math.min(vecMean.angle, linMean), Math.max(vecMean.angle, linMean));
+    ctx3.stroke();
+    ctx3.setLineDash([]);
+    
+    // Error indicator
+    ctx3.fillStyle = '#f56565';
+    ctx3.font = 'bold 14px sans-serif';
+    ctx3.textAlign = 'center';
+    ctx3.fillText('ERROR!', cx, cy);
+  }
+}
+
+// Resize canvases
+function resizeCanvases() {
+  const canvases = [canvas1, canvas2, canvas3];
+  canvases.forEach(canvas => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width - 40;
+    canvas.height = rect.height - 100;
+  });
+}
+
+// Update info
+function updateInfo() {
+  const toDeg = (rad) => ((rad * 180 / Math.PI + 360) % 360).toFixed(0);
+  
+  document.getElementById('angleA').textContent = toDeg(state.angleA) + '°';
+  document.getElementById('angleB').textContent = toDeg(state.angleB) + '°';
+  document.getElementById('tA').textContent = state.tA ? state.tA.toFixed(2) : '—';
+  document.getElementById('tB').textContent = state.tB ? state.tB.toFixed(2) : '—';
+  
+  const vecMean = vectorMean(state.angleA, state.angleB);
+  const linMean = linearMean(state.angleA, state.angleB);
+  
+  if (vecMean.angle !== null) {
+    document.getElementById('vectorMean').textContent = toDeg(vecMean.angle) + '°';
+  } else {
+    document.getElementById('vectorMean').textContent = 'undefined';
+  }
+  
+  document.getElementById('linearMean').textContent = toDeg(linMean) + '°';
+}
+
+// Main render loop
+function render() {
+  drawPlane();
+  draw1DSlice();
+  drawRing();
+  updateInfo();
+  requestAnimationFrame(render);
+}
+
+// Interaction handlers
+canvas1.addEventListener('pointerdown', (e) => {
+  const rect = canvas1.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = canvas1.width / 2;
+  const cy = canvas1.height / 2;
+  const scale = Math.min(canvas1.width, canvas1.height) * 0.4;
+  
+  // Convert to normalized coordinates
+  const nx = (x - cx) / scale;
+  const ny = (y - cy) / scale;
+  
+  // Check if clicking near A or B
+  const distA = Math.sqrt((nx - Math.cos(state.angleA)) ** 2 + (ny - Math.sin(state.angleA)) ** 2);
+  const distB = Math.sqrt((nx - Math.cos(state.angleB)) ** 2 + (ny - Math.sin(state.angleB)) ** 2);
+  
+  if (distA < 0.1) {
+    state.dragging = 'A';
+    state.dragType = 'angle';
+    canvas1.classList.add('dragging');
+  } else if (distB < 0.1) {
+    state.dragging = 'B';
+    state.dragType = 'angle';
+    canvas1.classList.add('dragging');
+  } else {
+    // Start dragging the line
+    state.dragging = true;
+    state.dragType = 'line';
+    state.dragStart = { x: nx, y: ny };
+    canvas1.classList.add('dragging');
+  }
+});
+
+canvas1.addEventListener('pointermove', (e) => {
+  if (!state.dragging) return;
+  
+  const rect = canvas1.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = canvas1.width / 2;
+  const cy = canvas1.height / 2;
+  const scale = Math.min(canvas1.width, canvas1.height) * 0.4;
+  
+  const nx = (x - cx) / scale;
+  const ny = (y - cy) / scale;
+  
+  if (state.dragType === 'angle') {
+    const angle = Math.atan2(ny, nx);
+    if (state.dragging === 'A') {
+      state.angleA = angle;
+    } else if (state.dragging === 'B') {
+      state.angleB = angle;
+    }
+  } else if (state.dragType === 'line') {
+    // Update line to pass through drag point
+    const dx = nx - state.dragStart.x;
+    const dy = ny - state.dragStart.y;
+    
+    // Update line direction
+    if (dx !== 0 || dy !== 0) {
+      const length = Math.sqrt(dx * dx + dy * dy);
+      state.line.u.x = dx / length;
+      state.line.u.y = dy / length;
+      state.line.p0.x = nx - state.line.u.x;
+      state.line.p0.y = ny - state.line.u.y;
+    }
+  }
+});
+
+canvas1.addEventListener('pointerup', () => {
+  state.dragging = null;
+  state.dragType = null;
+  canvas1.classList.remove('dragging');
+});
+
+// Ring interaction
+canvas3.addEventListener('pointerdown', (e) => {
+  const rect = canvas3.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = canvas3.width / 2;
+  const cy = canvas3.height / 2;
+  const radius = Math.min(cx, cy) * 0.7;
+  
+  const angle = Math.atan2(y - cy, x - cx);
+  const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+  
+  if (Math.abs(dist - radius) < 20) {
+    // Check which point is closer
+    const distA = Math.abs(wrapAngle(angle - state.angleA));
+    const distB = Math.abs(wrapAngle(angle - state.angleB));
+    
+    if (distA < distB && distA < 0.5) {
+      state.dragging = 'A';
+      canvas3.classList.add('dragging');
+    } else if (distB < 0.5) {
+      state.dragging = 'B';
+      canvas3.classList.add('dragging');
+    }
+  }
+});
+
+canvas3.addEventListener('pointermove', (e) => {
+  if (!state.dragging) return;
+  
+  const rect = canvas3.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = canvas3.width / 2;
+  const cy = canvas3.height / 2;
+  
+  const angle = Math.atan2(y - cy, x - cx);
+  
+  if (state.dragging === 'A') {
+    state.angleA = angle;
+  } else if (state.dragging === 'B') {
+    state.angleB = angle;
+  }
+});
+
+canvas3.addEventListener('pointerup', () => {
+  state.dragging = null;
+  canvas3.classList.remove('dragging');
+});
+
+// Button handlers
+document.getElementById('sliceHorizontal').addEventListener('click', () => {
+  state.line.p0 = { x: 0, y: 0 };
+  state.line.u = { x: 1, y: 0 };
+});
+
+document.getElementById('sliceVertical').addEventListener('click', () => {
+  state.line.p0 = { x: 0, y: 0 };
+  state.line.u = { x: 0, y: 1 };
+});
+
+document.getElementById('sliceDiagonal').addEventListener('click', () => {
+  state.line.p0 = { x: 0, y: 0 };
+  state.line.u = { x: Math.sqrt(2)/2, y: Math.sqrt(2)/2 };
+});
+
+document.getElementById('sliceThrough').addEventListener('click', () => {
+  // Create line through A and B
+  const ax = Math.cos(state.angleA);
+  const ay = Math.sin(state.angleA);
+  const bx = Math.cos(state.angleB);
+  const by = Math.sin(state.angleB);
+  
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  
+  if (length > 0.01) {
+    state.line.u = { x: dx / length, y: dy / length };
+    state.line.p0 = { x: ax, y: ay };
+  }
+});
+
+document.getElementById('unwrapToggle').addEventListener('change', (e) => {
+  state.unwrap = e.target.checked;
+});
+
+document.getElementById('showSeam').addEventListener('change', (e) => {
+  state.showSeam = e.target.checked;
+});
+
+// Initialize
+resizeCanvases();
+window.addEventListener('resize', resizeCanvases);
+render();
+</script>
+
+</body>
+</html>
