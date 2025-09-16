@@ -36,7 +36,7 @@ python build.py config_stroke_pipeline.yaml
    - Embeds CSS and JavaScript directly into HTML
    - Processes slides from `slides/` directory according to `config.yaml` order
    - Creates JavaScript object with slide content as strings
-   - Uses template from `templates/modified_presentation.js` 
+   - Embeds JavaScript modules directly via `templates.py` 
    - Outputs to `dist/math_presentation_bundled.html`
 
 2. **Bundle Folder Build** (`build_bundle_folder()`):
