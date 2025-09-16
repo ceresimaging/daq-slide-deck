@@ -98,13 +98,15 @@ class AssetManager:
     def _process_asset(self, original_path, local_name, asset_type, output_mode):
         """Process and copy an asset to the assets directory"""
         if output_mode == 'single':
-            # For single file mode, we don't need to copy assets
-            return None
-            
-        assets_dir = self.build_dir / "presentation_bundle" / "assets"
-        assets_dir.mkdir(parents=True, exist_ok=True)
-        
-        output_path = assets_dir / local_name
+            # For single file mode, we still need to process assets for embedding
+            # but write to a temp location
+            temp_dir = self.build_dir / "temp_assets"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            output_path = temp_dir / local_name
+        else:
+            assets_dir = self.build_dir / "presentation_bundle" / "assets"
+            assets_dir.mkdir(parents=True, exist_ok=True)
+            output_path = assets_dir / local_name
         
         if asset_type == 'image':
             # Convert to WebP with optimization
@@ -159,13 +161,28 @@ class AssetManager:
                             image_data = f.read()
                         b64_data = base64.b64encode(image_data).decode('utf-8')
                         data_url = f"data:image/webp;base64,{b64_data}"
-                        
-                        # Replace asset references
+
+                        # Replace asset references - try both original and processed paths
                         asset_ref = f"assets/{processed_path.name}"
+                        old_result_len = len(result)
                         result = result.replace(asset_ref, data_url)
-                        
-                        print(f"   🔗 Embedded {processed_path.name} as base64")
-                        
+
+                        # Also replace original path references
+                        if 'original_match' in asset:
+                            original_match = asset['original_match']
+                            # Handle both quote styles since the content processing changes " to '
+                            original_match_single = original_match.replace('"', "'")
+                            # Replace the entire original match with the same pattern but data URL
+                            updated_match_double = re.sub(r'["\']([^"\']+)["\']', f'"{data_url}"', original_match)
+                            updated_match_single = re.sub(r'["\']([^"\']+)["\']', f"'{data_url}'", original_match_single)
+                            # Try replacing both quote styles
+                            result = result.replace(original_match, updated_match_double)
+                            result = result.replace(original_match_single, updated_match_single)
+
+                        new_result_len = len(result)
+                        if new_result_len != old_result_len:
+                            print(f"   🔗 Embedded {processed_path.name} as base64 (+{new_result_len - old_result_len} bytes)")
+
                     except Exception as e:
                         print(f"   ❌ Failed to embed {processed_path}: {e}")
         

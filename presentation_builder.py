@@ -163,11 +163,16 @@ class PresentationBuilder:
                     temp_path = temp_dir / local_name
 
                     # Process the image
-                    self.asset_manager._process_asset(original_path, local_name, 'image', 'bundle')
-                    asset['processed'] = str(self.build_dir / "presentation_bundle" / "assets" / local_name)
+                    processed_path = self.asset_manager._process_asset(original_path, local_name, 'image', 'single')
+                    asset['processed'] = str(processed_path)
+
+        # Collect all assets from slides for embedding
+        all_slide_assets = []
+        for slide in slides_content:
+            all_slide_assets.extend(slide['assets'])
 
         # Embed assets as base64
-        html_content = self.asset_manager.embed_as_base64(html_content, self.asset_manager.assets_collected)
+        html_content = self.asset_manager.embed_as_base64(html_content, all_slide_assets)
 
         # Write single file
         single_file_path = self.build_dir / "index.html"

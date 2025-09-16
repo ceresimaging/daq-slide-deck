@@ -251,7 +251,7 @@ function initFlightPhotoWindow() {
         radius,
         0,
         0,
-        1,  // Changed sweep-flag from 0 to 1 for clockwise
+        1, // Changed sweep-flag from 0 to 1 for clockwise
         centerX + morningEndVec.x * radius,
         centerY + morningEndVec.y * radius,
         "Z",
@@ -274,7 +274,7 @@ function initFlightPhotoWindow() {
         radius,
         0,
         0,
-        1,  // Changed sweep-flag from 0 to 1 for clockwise
+        1, // Changed sweep-flag from 0 to 1 for clockwise
         centerX + afternoonEndVec.x * radius,
         centerY + afternoonEndVec.y * radius,
         "Z",
@@ -299,7 +299,10 @@ function initFlightPhotoWindow() {
 
       if (afternoonLabel) {
         afternoonLabel.setAttribute("x", centerX + afternoonCenterVec.x * 100);
-        afternoonLabel.setAttribute("y", centerY + afternoonCenterVec.y * 100 + 4); // +4 for text baseline
+        afternoonLabel.setAttribute(
+          "y",
+          centerY + afternoonCenterVec.y * 100 + 4
+        ); // +4 for text baseline
       }
     }
 

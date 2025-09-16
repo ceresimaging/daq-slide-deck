@@ -1,9 +1,9 @@
 <div class="slide">
-    <h1>The Bug We've All Written</h1>
-    
-    <div class="highlight-box">
-        <h3>❌ The Naive Approach</h3>
-        <pre><code class="language-python">def average_angle(angle1, angle2):
+  <h1>The Bug We've All Written</h1>
+
+  <div class="highlight-box">
+    <h3>❌ The Naive Approach</h3>
+    <pre><code class="language-python">def average_angle(angle1, angle2):
     return (angle1 + angle2) / 2  # Seems reasonable...
 
 # Example: Average heading between two compass readings
@@ -12,69 +12,162 @@ heading2 = 10   # degrees
 
 average = average_angle(heading1, heading2)
 print(f"Average: {average}°")  # 180° - COMPLETELY WRONG!</code></pre>
-    </div>
-    
-    <div class="visual-demo">
-        <svg width="600" height="600" viewBox="0 0 300 300">
-            <!-- Compass circle -->
-            <circle cx="150" cy="150" r="120" fill="none" stroke="#333" stroke-width="2"/>
-            
-            <!-- Compass labels with stroke for better readability -->
-            <text x="150" y="20" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107" paint-order="stroke" stroke="#0b0f14" stroke-width="3">N (0°)</text>
-            <text x="280" y="155" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107" paint-order="stroke" stroke="#0b0f14" stroke-width="3">E (90°)</text>
-            <text x="150" y="290" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107" paint-order="stroke" stroke="#0b0f14" stroke-width="3">S (180°)</text>
-            <text x="20" y="155" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC107" paint-order="stroke" stroke="#0b0f14" stroke-width="3">W (270°)</text>
-            
-            <!-- Heading 1: 350° -->
-            <line x1="150" y1="150" x2="140" y2="30" stroke="#2196F3" stroke-width="4"/>
-            <circle cx="140" cy="30" r="8" fill="#2196F3"/>
-            <text x="110" y="20" font-size="14" fill="#FFC107">350°</text>
-            
-            <!-- Heading 2: 10° -->
-            <line x1="150" y1="150" x2="160" y2="30" stroke="#4CAF50" stroke-width="4"/>
-            <circle cx="160" cy="30" r="8" fill="#4CAF50"/>
-            <text x="190" y="20" font-size="14" fill="#FFC107">10°</text>
-            
-            <!-- Wrong average: 180° -->
-            <line x1="150" y1="150" x2="150" y2="270" stroke="#FF5722" stroke-width="4" stroke-dasharray="5,5"/>
-            <circle cx="150" cy="270" r="8" fill="#FF5722"/>
-            <text x="150" y="260" text-anchor="middle" font-size="16" fill="#FF5722" font-weight="bold">
-                Wrong: 180°
-            </text>
-            
-            <!-- Correct average indicator -->
-            <line x1="150" y1="150" x2="150" y2="30" stroke="#FFC107" stroke-width="3" opacity="0.7"/>
-            <text x="220" y="60" font-size="14" fill="#ffffff" font-weight="bold">Should be ~0°!</text>
-        </svg>
-    </div>
-    
-    <div class="warning-box">
-        <h3>What Went Wrong?</h3>
-        <ul>
-            <li>350° and 10° are <strong>20° apart</strong> on the circle</li>
-            <li>But linear math sees them as <strong>340° apart</strong></li>
-            <li>The average points in the <strong>opposite direction</strong>!</li>
-        </ul>
-    </div>
+  </div>
+
+  <div class="visual-demo">
+    <svg width="600" height="600" viewBox="0 0 300 300">
+      <!-- Compass circle -->
+      <circle
+        cx="150"
+        cy="150"
+        r="120"
+        fill="none"
+        stroke="#333"
+        stroke-width="2"
+      />
+
+      <!-- Compass labels with stroke for better readability -->
+      <text
+        x="150"
+        y="20"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="bold"
+        fill="#FFC107"
+        paint-order="stroke"
+        stroke="#0b0f14"
+        stroke-width="3"
+      >
+        N (0°)
+      </text>
+      <text
+        x="280"
+        y="155"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="bold"
+        fill="#FFC107"
+        paint-order="stroke"
+        stroke="#0b0f14"
+        stroke-width="3"
+      >
+        E (90°)
+      </text>
+      <text
+        x="150"
+        y="290"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="bold"
+        fill="#FFC107"
+        paint-order="stroke"
+        stroke="#0b0f14"
+        stroke-width="3"
+      >
+        S (180°)
+      </text>
+      <text
+        x="20"
+        y="155"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="bold"
+        fill="#FFC107"
+        paint-order="stroke"
+        stroke="#0b0f14"
+        stroke-width="3"
+      >
+        W (270°)
+      </text>
+
+      <!-- Heading 1: 350° -->
+      <line
+        x1="150"
+        y1="150"
+        x2="140"
+        y2="30"
+        stroke="#2196F3"
+        stroke-width="4"
+      />
+      <circle cx="140" cy="30" r="8" fill="#2196F3" />
+      <text x="110" y="20" font-size="14" fill="#FFC107">350°</text>
+
+      <!-- Heading 2: 10° -->
+      <line
+        x1="150"
+        y1="150"
+        x2="160"
+        y2="30"
+        stroke="#4CAF50"
+        stroke-width="4"
+      />
+      <circle cx="160" cy="30" r="8" fill="#4CAF50" />
+      <text x="190" y="20" font-size="14" fill="#FFC107">10°</text>
+
+      <!-- Wrong average: 180° -->
+      <line
+        x1="150"
+        y1="150"
+        x2="150"
+        y2="270"
+        stroke="#FF5722"
+        stroke-width="4"
+        stroke-dasharray="5,5"
+      />
+      <circle cx="150" cy="270" r="8" fill="#FF5722" />
+      <text
+        x="150"
+        y="260"
+        text-anchor="middle"
+        font-size="16"
+        fill="#FF5722"
+        font-weight="bold"
+      >
+        Wrong: 180°
+      </text>
+
+      <!-- Correct average indicator -->
+      <line
+        x1="150"
+        y1="150"
+        x2="150"
+        y2="30"
+        stroke="#FFC107"
+        stroke-width="3"
+        opacity="0.7"
+      />
+      <text x="220" y="60" font-size="14" fill="#ffffff" font-weight="bold">
+        Should be ~0°!
+      </text>
+    </svg>
+  </div>
+
+  <div class="warning-box">
+    <h3>What Went Wrong?</h3>
+    <ul>
+      <li>350° and 10° are <strong>20° apart</strong> on the circle</li>
+      <li>But linear math sees them as <strong>340° apart</strong></li>
+      <li>The average points in the <strong>opposite direction</strong>!</li>
+    </ul>
+  </div>
 </div>
 
 <script>
-// Fix SVG layout and labels when this slide is displayed
-console.log('🎯 Slide 02-the-bug script executing');
-setTimeout(() => {
-    console.log('🎯 Slide 02-the-bug timeout triggered');
-    const svg = document.querySelector('.visual-demo svg');
+  // Fix SVG layout and labels when this slide is displayed
+  console.log("🎯 Slide 02-the-bug script executing");
+  setTimeout(() => {
+    console.log("🎯 Slide 02-the-bug timeout triggered");
+    const svg = document.querySelector(".visual-demo svg");
     if (svg) {
-        console.log('   Found SVG in .visual-demo');
-        if (window.fixSVGLayoutAndLabels) {
-            console.log('   Calling fixSVGLayoutAndLabels from slide script');
-            window.fixSVGLayoutAndLabels(svg);
-        } else {
-            console.warn('   fixSVGLayoutAndLabels function not found on window');
-        }
+      console.log("   Found SVG in .visual-demo");
+      if (window.fixSVGLayoutAndLabels) {
+        console.log("   Calling fixSVGLayoutAndLabels from slide script");
+        window.fixSVGLayoutAndLabels(svg);
+      } else {
+        console.warn("   fixSVGLayoutAndLabels function not found on window");
+      }
     } else {
-        console.warn('   No SVG found in .visual-demo');
+      console.warn("   No SVG found in .visual-demo");
     }
-}, 100);
+  }, 100);
 </script>
-
